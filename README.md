@@ -14,7 +14,7 @@ Resume Analyzer is an AI-powered Laravel application designed to streamline the 
 
 ## 🛠️ Tech Stack
 
-- **Backend**: Laravel 12, PHP 8.2+
+- **Backend**: Laravel 12, PHP 8.4
 - **Frontend**: Vue.js 3, Inertia.js, Tailwind CSS
 - **AI/LLM**: Powered by the **[Laravel AI SDK](https://github.com/laravel/ai)** for model-agnostic integration (Ollama, OpenAI, Anthropic, etc.)
 - **Queue**: Database Driver (for job persistence)
