@@ -47,22 +47,18 @@ export const getScoreColorClasses = (score) => {
     if (score >= 80) return {
         bg: "bg-green-500",
         text: "text-green-600 dark:text-green-400",
-        fullText: "text-green-600 dark:text-green-400"
     };
     if (score >= 60) return {
         bg: "bg-amber-500",
         text: "text-amber-600 dark:text-amber-400",
-        fullText: "text-amber-600 dark:text-amber-400"
     };
     if (score >= 40) return {
         bg: "bg-orange-500",
         text: "text-orange-600 dark:text-orange-400",
-        fullText: "text-orange-600 dark:text-orange-400"
     };
     return {
         bg: "bg-red-500",
         text: "text-red-600 dark:text-red-400",
-        fullText: "text-red-600 dark:text-red-400"
     };
 };
 

@@ -147,63 +147,79 @@ class ResumeAnalysisService
         // Update status to processing
         $analysis->update(['status' => 'processing']);
 
-        // Parse PDF
-        $parser = app(Parser::class);
-        $filePath = Storage::path($analysis->resume_file_path);
-        $pdf = $parser->parseFile($filePath);
-        $resumeText = $pdf->getText();
+        try {
+            // Parse PDF
+            $parser = app(Parser::class);
+            $filePath = Storage::path($analysis->resume_file_path);
+            $pdf = $parser->parseFile($filePath);
+            $resumeText = $pdf->getText();
 
-        /** @var JobDescription|null $jobDescription */
-        $jobDescription = $analysis->jobDescription;
+            /** @var JobDescription|null $jobDescription */
+            $jobDescription = $analysis->jobDescription;
 
-        if (! $jobDescription) {
-            throw new Exception('Associated job description not found for analysis ID: '.$analysis->id);
+            if (! $jobDescription) {
+                throw new Exception('Associated job description not found for analysis ID: '.$analysis->id);
+            }
+
+            $agent = app()->makeWith(ResumeAnalystAgent::class, [
+                'jobDescription' => $jobDescription,
+                'resumeText' => $resumeText,
+            ]);
+
+            $response = $agent->prompt('Analyze this resume.');
+
+            $matchingData = ($response instanceof StructuredAgentResponse)
+                ? $response->structured
+                : $this->extractJson($response->text);
+
+            if ($matchingData === []) {
+                throw new Exception('AI analysis failed to return valid JSON. Raw response: '.Str::limit($response->text, 500));
+            }
+
+            $usage = $response->usage;
+            $promptTokens = $usage->promptTokens ?? 0;
+            $completionTokens = $usage->completionTokens ?? 0;
+            $totalTokens = $promptTokens + $completionTokens;
+
+            $matchingData['job_description'] = [
+                'id' => $jobDescription->id,
+                'job_role' => $jobDescription->job_role,
+                'experience_range' => "{$jobDescription->experience_min}-{$jobDescription->experience_max} years",
+            ];
+
+            $analysis->update([
+                'status' => 'completed',
+                'result' => $matchingData,
+                'prompt_tokens' => $promptTokens,
+                'completion_tokens' => $completionTokens,
+                'total_tokens' => $totalTokens,
+            ]);
+
+            $analysis->logs()->create([
+                'status' => 'completed',
+                'result' => $matchingData,
+                'prompt_tokens' => $promptTokens,
+                'completion_tokens' => $completionTokens,
+                'total_tokens' => $totalTokens,
+                'attempt' => $attemptNumber,
+            ]);
+
+            return $analysis;
+
+        } catch (Exception $e) {
+            $analysis->update([
+                'status' => 'failed',
+                'error_message' => Str::limit($e->getMessage(), 500),
+            ]);
+
+            $analysis->logs()->create([
+                'status' => 'failed',
+                'error_message' => Str::limit($e->getMessage(), 500),
+                'attempt' => $attemptNumber,
+            ]);
+
+            throw $e;
         }
-
-        $agent = app()->makeWith(ResumeAnalystAgent::class, [
-            'jobDescription' => $jobDescription,
-            'resumeText' => $resumeText,
-        ]);
-
-        $response = $agent->prompt('Analyze this resume.');
-
-        $matchingData = ($response instanceof StructuredAgentResponse)
-            ? $response->structured
-            : $this->extractJson($response->text);
-
-        if ($matchingData === []) {
-            throw new Exception('AI analysis failed to return valid JSON. Raw response: '.Str::limit($response->text, 500));
-        }
-
-        $usage = $response->usage;
-        $promptTokens = $usage->promptTokens ?? 0;
-        $completionTokens = $usage->completionTokens ?? 0;
-        $totalTokens = $promptTokens + $completionTokens;
-
-        $matchingData['job_description'] = [
-            'id' => $jobDescription->id,
-            'job_role' => $jobDescription->job_role,
-            'experience_range' => "{$jobDescription->experience_min}-{$jobDescription->experience_max} years",
-        ];
-
-        $analysis->update([
-            'status' => 'completed',
-            'result' => $matchingData,
-            'prompt_tokens' => $promptTokens,
-            'completion_tokens' => $completionTokens,
-            'total_tokens' => $totalTokens,
-        ]);
-
-        $analysis->logs()->create([
-            'status' => 'completed',
-            'result' => $matchingData,
-            'prompt_tokens' => $promptTokens,
-            'completion_tokens' => $completionTokens,
-            'total_tokens' => $totalTokens,
-            'attempt' => $attemptNumber,
-        ]);
-
-        return $analysis;
     }
 
     /**

@@ -50,7 +50,7 @@ class ResumeAnalysisServiceTest extends TestCase
         ];
 
         // Create a real StructuredAgentResponse object
-        $usage = new Usage(100, 200, 300);
+        $usage = new Usage(promptTokens: 100, completionTokens: 200);
         $meta = new Meta('1', 'model');
         $realResponse = new StructuredAgentResponse('123', $expectedData, 'json text', $usage, $meta);
 

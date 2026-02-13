@@ -7,11 +7,12 @@ use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Attributes\Timeout;
 use Laravel\Ai\Contracts\Agent;
 use Laravel\Ai\Contracts\Conversational;
+use Laravel\Ai\Contracts\HasStructuredOutput;
 use Laravel\Ai\Promptable;
 use Stringable;
 
 #[Timeout(300)]
-class ResumeAnalystAgent implements Agent, Conversational
+class ResumeAnalystAgent implements Agent, Conversational, HasStructuredOutput
 {
     use Promptable;
 
@@ -25,9 +26,9 @@ class ResumeAnalystAgent implements Agent, Conversational
      */
     public function instructions(): Stringable|string
     {
-        $requirements = is_array($this->jobDescription->requirements)
+        $requirements = is_array($this->jobDescription->requirements) && $this->jobDescription->requirements !== []
             ? implode(', ', $this->jobDescription->requirements)
-            : ((string) ($this->jobDescription->requirements ?? 'Not specified'));
+            : 'Not specified';
 
         return "Analyze the resume against the job description and provide a matching analysis in JSON format.
 CRITICAL: YOUR ENTIRE RESPONSE MUST BE A SINGLE VALID JSON OBJECT. DO NOT INCLUDE ANY EXPLANATION, CONVERSATIONAL TEXT, OR MARKDOWN BACKTICKS.

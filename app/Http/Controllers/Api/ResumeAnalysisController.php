@@ -50,10 +50,12 @@ class ResumeAnalysisController extends Controller
             ], 200);
 
         } catch (Exception $e) {
+            report($e);
+
             return response()->json([
                 'success' => false,
                 'error' => 'Failed to analyze resume',
-                'message' => $e->getMessage(),
+                'message' => app()->isLocal() ? $e->getMessage() : 'An unexpected error occurred.',
             ], 500);
         }
     }
