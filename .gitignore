@@ -33,3 +33,16 @@ reset.sh
 !/storage/app/resumes/.gitignore
 /public/storage/resumes/*
 !/public/storage/resumes/.gitignore
+
+# AI Tools & Metadata
+/.agents
+/.claude
+/.cursor
+/.junie
+/.codex
+/.mcp.json
+/boost.json
+/opencode.json
+
+/.github/skills
+

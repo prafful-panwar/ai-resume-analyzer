@@ -17,7 +17,16 @@ class JobDescriptionFactory extends Factory
     public function definition(): array
     {
         return [
-            //
+            'job_role' => $this->faker->jobTitle(),
+            'experience_min' => $this->faker->numberBetween(1, 4),
+            'experience_max' => $this->faker->numberBetween(5, 10),
+            'description' => $this->faker->paragraphs(3, true),
+            'requirements' => [
+                $this->faker->word(),
+                $this->faker->word(),
+                $this->faker->word(),
+            ],
+            'user_id' => \App\Models\User::factory(),
         ];
     }
 }
