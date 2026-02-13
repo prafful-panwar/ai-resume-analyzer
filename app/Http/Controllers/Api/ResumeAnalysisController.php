@@ -25,11 +25,7 @@ class ResumeAnalysisController extends Controller
             // Use Laravel AI SDK with anonymous agent
             $response = agent(
                 instructions: $systemPrompt,
-            )->prompt(
-                $resumeText,
-                provider: 'ollama',
-                model: 'mistral:7b',
-            );
+            )->prompt($resumeText);
 
             // Get the AI response content
             $aiResponse = $response->text;

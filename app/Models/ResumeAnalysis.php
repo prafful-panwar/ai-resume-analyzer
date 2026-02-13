@@ -6,7 +6,24 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property int $id
+ * @property int $user_id
+ * @property int $job_description_id
+ * @property string $resume_file_path
+ * @property string $original_filename
+ * @property string $status
+ * @property array<string, mixed>|null $result
+ * @property int|null $prompt_tokens
+ * @property int|null $completion_tokens
+ * @property int|null $total_tokens
+ * @property string|null $error_message
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ */
 class ResumeAnalysis extends Model
 {
     protected $fillable = [
@@ -93,11 +110,7 @@ class ResumeAnalysis extends Model
      */
     public function scopeByStatus(Builder $query, string|array ...$statuses): Builder
     {
-        if (count($statuses) === 1 && is_array($statuses[0])) {
-            $statuses = $statuses[0];
-        }
-
-        return $query->whereIn('status', $statuses);
+        return $query->whereIn('status', Arr::flatten($statuses));
     }
 
     /**

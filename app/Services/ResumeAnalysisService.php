@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Ai\Agents\ResumeAnalystAgent;
 use App\Jobs\AnalyzeResumeJob;
 use App\Models\JobDescription;
 use App\Models\ResumeAnalysis;
@@ -9,9 +10,8 @@ use App\Models\User;
 use Exception;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
-
-use function Laravel\Ai\agent;
-
+use Illuminate\Support\Str;
+use Laravel\Ai\Responses\StructuredAgentResponse;
 use Smalot\PdfParser\Parser;
 
 /**
@@ -143,40 +143,49 @@ class ResumeAnalysisService
     public function performAnalysis(ResumeAnalysis $analysis): ResumeAnalysis
     {
         $attemptNumber = $analysis->logs()->count() + 1;
+
         // Update status to processing
         $analysis->update(['status' => 'processing']);
+
         // Parse PDF
-        $parser = new Parser;
+        $parser = app(Parser::class);
         $filePath = Storage::path($analysis->resume_file_path);
         $pdf = $parser->parseFile($filePath);
         $resumeText = $pdf->getText();
-        // Build AI prompt
+
         /** @var JobDescription|null $jobDescription */
         $jobDescription = $analysis->jobDescription;
+
         if (! $jobDescription) {
             throw new Exception('Associated job description not found for analysis ID: '.$analysis->id);
         }
-        $systemPrompt = $this->buildSystemPrompt($jobDescription, $resumeText);
-        // Call AI
-        $response = agent(instructions: $systemPrompt)->prompt(
-            'Analyze the resume and provide matching analysis in JSON format.',
-            provider: 'ollama',
-            model: 'mistral:7b'
-        );
-        $aiResponse = $response->text;
+
+        $agent = app()->makeWith(ResumeAnalystAgent::class, [
+            'jobDescription' => $jobDescription,
+            'resumeText' => $resumeText,
+        ]);
+
+        $response = $agent->prompt('Analyze this resume.');
+
+        $matchingData = ($response instanceof StructuredAgentResponse)
+            ? $response->structured
+            : $this->extractJson($response->text);
+
+        if ($matchingData === []) {
+            throw new Exception('AI analysis failed to return valid JSON. Raw response: '.Str::limit($response->text, 500));
+        }
+
         $usage = $response->usage;
         $promptTokens = $usage->promptTokens ?? 0;
         $completionTokens = $usage->completionTokens ?? 0;
         $totalTokens = $promptTokens + $completionTokens;
-        // Robust JSON extraction and decoding
-        $matchingData = $this->extractJson($aiResponse);
-        // Add job description details
+
         $matchingData['job_description'] = [
             'id' => $jobDescription->id,
             'job_role' => $jobDescription->job_role,
             'experience_range' => "{$jobDescription->experience_min}-{$jobDescription->experience_max} years",
         ];
-        // Update analysis model
+
         $analysis->update([
             'status' => 'completed',
             'result' => $matchingData,
@@ -184,7 +193,7 @@ class ResumeAnalysisService
             'completion_tokens' => $completionTokens,
             'total_tokens' => $totalTokens,
         ]);
-        // Create log entry
+
         $analysis->logs()->create([
             'status' => 'completed',
             'result' => $matchingData,
@@ -198,65 +207,25 @@ class ResumeAnalysisService
     }
 
     /**
-     * Build the system prompt for AI matching analysis.
-     */
-    private function buildSystemPrompt(JobDescription $jobDescription, string $resumeText): string
-    {
-        $requirements = is_array($jobDescription->requirements)
-            ? implode(', ', $jobDescription->requirements)
-            : ((string) ($jobDescription->requirements ?? 'Not specified'));
-
-        return "Analyze the resume against the job description and provide a matching analysis in JSON format.
-CRITICAL: YOUR ENTIRE RESPONSE MUST BE A SINGLE VALID JSON OBJECT. DO NOT INCLUDE ANY EXPLANATION, CONVERSATIONAL TEXT, OR MARKDOWN BACKTICKS.
-
-Job Role: {$jobDescription->job_role}
-Required Experience: {$jobDescription->experience_min}-{$jobDescription->experience_max} years
-Job Description: {$jobDescription->description}
-Required Skills: {$requirements}
-
-Resume:
-{$resumeText}
-
-Provide your analysis in the following JSON format:
-{
-    \"candidate_name\": \"extracted name\",
-    \"candidate_experience_years\": number,
-    \"match_score\": 0-100,
-    \"matched_skills\": [\"skill1\", \"skill2\"],
-    \"missing_skills\": [\"skill1\", \"skill2\"],
-    \"experience_match\": \"matches|below|above\",
-    \"strengths\": [\"strength1\", \"strength2\"],
-    \"concerns\": [\"concern1\", \"concern2\"],
-    \"recommendation\": \"strong_match|potential_match|not_recommended\",
-    \"summary\": \"brief summary\"
-}";
-    }
-
-    /**
-     * Robustly extract and decode JSON from AI response.
+     * Extract JSON from the AI response.
      *
      * @return array<string, mixed>
      */
-    private function extractJson(string $aiResponse): array
+    private function extractJson(string $text): array
     {
-        $cleanResponse = trim($aiResponse);
-
-        // Strategy 1: Look for JSON in triple backticks
-        if (preg_match('/```(?:json)?\s*(\{.*?\})\s*```/s', $cleanResponse, $matches)) {
-            $cleanResponse = $matches[1];
-        }
-        // Strategy 2: If no backticks, find the first '{' and last '}'
-        elseif (preg_match('/(\{.*\})/s', $cleanResponse, $matches)) {
-            $cleanResponse = $matches[1];
-        }
-
-        $data = json_decode($cleanResponse, true);
-
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            throw new Exception('Failed to parse AI response: '.json_last_error_msg());
+        // Try to find JSON block in markdown
+        if (preg_match('/```json\s*(.*?)\s*```/s', $text, $matches)) {
+            $json = $matches[1];
+        } elseif (preg_match('/\{(?:[^{}]|(?R))*\}/s', $text, $matches)) {
+            // Try to find the first JSON-like structure
+            $json = $matches[0];
+        } else {
+            $json = $text;
         }
 
-        return $data;
+        $decoded = json_decode($json, true);
+
+        return is_array($decoded) ? $decoded : [];
     }
 
     /**
@@ -270,27 +239,23 @@ Provide your analysis in the following JSON format:
         $extension = pathinfo($filename, PATHINFO_EXTENSION);
         $basename = pathinfo($filename, PATHINFO_FILENAME);
 
-        // Remove any characters that aren't alphanumeric, dash, underscore, or space
-        $basename = (string) preg_replace('/[^a-zA-Z0-9\s_-]/', '', $basename);
-
-        // Replace multiple spaces with single space
-        $basename = (string) preg_replace('/\s+/', ' ', $basename);
-
-        // Trim whitespace
-        $basename = trim($basename);
-
-        // Limit length to 100 characters
-        $basename = substr($basename, 0, 100);
+        // Sanitize basename
+        $basename = Str::of($basename)
+            ->replaceMatches('/[^a-zA-Z0-9\s_-]/', '')
+            ->squish()
+            ->trim()
+            ->substr(0, 100)
+            ->toString();
 
         // If basename is empty after sanitization, use a default
         if ($basename === '' || $basename === '0') {
-            $basename = 'resume_'.time();
+            $basename = 'resume_'.now()->timestamp;
         }
 
         // Sanitize extension (only allow common document formats)
-        $allowedExtensions = ['pdf', 'doc', 'docx', 'txt'];
+        $allowedExtensions = collect(['pdf', 'doc', 'docx', 'txt']);
         $extension = strtolower($extension);
-        if (! in_array($extension, $allowedExtensions)) {
+        if ($allowedExtensions->doesntContain($extension)) {
             $extension = 'pdf'; // Default to pdf
         }
 

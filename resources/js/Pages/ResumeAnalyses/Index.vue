@@ -2,6 +2,11 @@
 import { router } from "@inertiajs/vue3";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import { Head } from "@inertiajs/vue3";
+import {
+    formatRecommendation,
+    getScoreColorClasses,
+    formatDate,
+} from "@/Utils/analysis";
 
 const props = defineProps({
     analyses: {
@@ -11,9 +16,7 @@ const props = defineProps({
 });
 
 const getScoreColor = (score) => {
-    if (score >= 80) return "bg-green-500 text-green-600";
-    if (score >= 40) return "bg-amber-500 text-amber-600";
-    return "bg-red-500 text-red-600";
+    return getScoreColorClasses(score);
 };
 
 const getStatusBadge = (status) => {
@@ -37,18 +40,6 @@ const getStatusText = (status) => {
         failed: "Failed",
     };
     return texts[status] || status;
-};
-
-const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleString("en-US", {
-        month: "numeric",
-        day: "numeric",
-        year: "numeric",
-        hour: "numeric",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: true,
-    });
 };
 
 // Auto-refresh every 5 seconds if there are pending/processing analyses
@@ -167,15 +158,19 @@ if (hasPendingAnalyses) {
                                 <span
                                     class="text-sm font-medium text-gray-500 dark:text-gray-400"
                                 >
-                                    Match Score:
-                                    {{ analysis.result.match_score }}%
+                                    {{
+                                        formatRecommendation(
+                                            analysis.result.recommendation,
+                                        )
+                                    }}
+                                    ({{ analysis.result.match_score }}%)
                                 </span>
                                 <span
                                     :class="[
                                         'text-3xl font-black leading-none',
                                         getScoreColor(
                                             analysis.result.match_score,
-                                        ).split(' ')[1],
+                                        ).text,
                                     ]"
                                 >
                                     {{ analysis.result.match_score }}%
@@ -189,7 +184,7 @@ if (hasPendingAnalyses) {
                                         'h-full transition-all duration-1000 ease-out',
                                         getScoreColor(
                                             analysis.result.match_score,
-                                        ).split(' ')[0],
+                                        ).bg,
                                     ]"
                                     :style="{
                                         width: `${analysis.result.match_score}%`,

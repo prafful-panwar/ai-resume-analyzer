@@ -3,6 +3,11 @@ import { ref, computed, onMounted } from "vue";
 import { router } from "@inertiajs/vue3";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import { Head } from "@inertiajs/vue3";
+import {
+    formatRecommendation,
+    getScoreColorClasses,
+    getRecommendationBadgeClasses,
+} from "@/Utils/analysis";
 
 const props = defineProps({
     jobDescriptions: {
@@ -96,30 +101,15 @@ const clearForm = () => {
 };
 
 const getMatchScoreColor = (score) => {
-    if (score >= 80) return "text-green-600 dark:text-green-400";
-    if (score >= 60) return "text-yellow-600 dark:text-yellow-400";
-    return "text-red-600 dark:text-red-400";
+    return getScoreColorClasses(score).text;
 };
 
 const getRecommendationBadge = (recommendation) => {
-    const badges = {
-        strong_match:
-            "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-        potential_match:
-            "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
-        not_recommended:
-            "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
-    };
-    return badges[recommendation] || badges.potential_match;
+    return getRecommendationBadgeClasses(recommendation);
 };
 
 const getRecommendationText = (recommendation) => {
-    const texts = {
-        strong_match: "Strong Match",
-        potential_match: "Potential Match",
-        not_recommended: "Not Recommended",
-    };
-    return texts[recommendation] || recommendation;
+    return formatRecommendation(recommendation);
 };
 </script>
 
