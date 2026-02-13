@@ -2,7 +2,20 @@
 
 Resume Analyzer is an AI-powered Laravel application designed to streamline the recruitment process. It leverages Large Language Models (LLMs) to analyze resumes, extract structured data, and match candidates against specific job descriptions. The application is designed to be **model-agnostic**, allowing you to use any LLM provider (Ollama, OpenAI, Anthropic, etc.) for testing and production.
 
-## 🚀 Features
+### Product Walkthrough
+
+![Product Walkthrough](docs/assets/product-walkthrough.webp)
+
+## 🚀 Application Gallery & Features
+
+### Application Tour
+
+![Welcome Page](docs/assets/welcome-top.png)
+![Dashboard](docs/assets/dashboard.png)
+![Job Descriptions](docs/assets/jd-list.png)
+![Resume Matching](docs/assets/matching.png)
+![Analysis List](docs/assets/analysis-list.png)
+![Detailed Analysis](docs/assets/analysis-top.png)
 
 - **Resume Matching**: Upload a PDF resume and compare it against a Job Description (JD) to get a compatibility score and analysis (Skills, Experience, Education match).
 - **Queue-Based Processing**: Analysis runs in the background using Laravel Queues for a non-blocking user experience.
