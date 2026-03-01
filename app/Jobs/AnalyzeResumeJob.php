@@ -21,6 +21,8 @@ class AnalyzeResumeJob implements ShouldBeUnique, ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    public const QUEUE = 'resume-analysis';
+
     /**
      * The number of times the job may be attempted.
      */
@@ -61,7 +63,7 @@ class AnalyzeResumeJob implements ShouldBeUnique, ShouldQueue
      */
     public function middleware(): array
     {
-        return [new RateLimited('resume-analysis')];
+        return [new RateLimited(self::QUEUE)];
     }
 
     /**
@@ -69,7 +71,9 @@ class AnalyzeResumeJob implements ShouldBeUnique, ShouldQueue
      */
     public function __construct(
         public ResumeAnalysis $resumeAnalysis
-    ) {}
+    ) {
+        $this->onQueue(self::QUEUE);
+    }
 
     /**
      * Get the tags that should be assigned to the job.
@@ -79,7 +83,7 @@ class AnalyzeResumeJob implements ShouldBeUnique, ShouldQueue
     public function tags(): array
     {
         return [
-            'resume-analysis',
+            self::QUEUE,
             'user:'.$this->resumeAnalysis->user_id,
             'analysis:'.$this->resumeAnalysis->id,
         ];

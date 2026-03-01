@@ -67,4 +67,12 @@ class User extends Authenticatable
     {
         return $this->hasMany(ResumeAnalysis::class);
     }
+
+    /**
+     * Route notifications for the Slack channel.
+     */
+    public function routeNotificationForSlack(): ?string
+    {
+        return config('services.slack.notifications.webhook_url');
+    }
 }
