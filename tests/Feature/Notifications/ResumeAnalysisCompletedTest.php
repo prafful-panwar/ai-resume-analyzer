@@ -11,28 +11,35 @@ use Illuminate\Support\Facades\Notification;
 
 uses(RefreshDatabase::class);
 
-beforeEach(function (): void {
-    $this->user = User::factory()->create();
+/**
+ * @return array{User, ResumeAnalysis, ResumeAnalysisCompleted}
+ */
+function setupTestData(): array
+{
+    $user = User::factory()->create();
 
     $jobDescription = JobDescription::factory()->create([
-        'user_id' => $this->user->id,
+        'user_id' => $user->id,
         'job_role' => 'Software Engineer',
     ]);
 
-    $this->analysis = ResumeAnalysis::factory()->create([
-        'user_id' => $this->user->id,
+    $analysis = ResumeAnalysis::factory()->create([
+        'user_id' => $user->id,
         'job_description_id' => $jobDescription->id,
         'status' => 'completed',
         'result' => ['match_score' => 85],
     ]);
 
-    $this->notification = new ResumeAnalysisCompleted($this->analysis);
-});
+    $notification = new ResumeAnalysisCompleted($analysis);
+
+    return [$user, $analysis, $notification];
+}
 
 test('notification is sent via database and broadcast channels when no slack webhook configured', function (): void {
+    [$user, $analysis, $notification] = setupTestData();
     config(['services.slack.notifications_webhook_url' => null]);
 
-    $channels = $this->notification->via($this->user);
+    $channels = $notification->via($user);
 
     expect($channels)->toContain('database')
         ->and($channels)->toContain('broadcast')
@@ -40,63 +47,70 @@ test('notification is sent via database and broadcast channels when no slack web
 });
 
 test('notification includes slack channel when webhook is configured', function (): void {
+    [$user, $analysis, $notification] = setupTestData();
     config(['services.slack.notifications_webhook_url' => 'https://hooks.slack.com/services/test']);
 
-    $channels = $this->notification->via($this->user);
+    $channels = $notification->via($user);
 
     expect($channels)->toContain('slack');
 });
 
 test('toArray payload contains required keys', function (): void {
-    $data = $this->notification->toArray($this->user);
+    [$user, $analysis, $notification] = setupTestData();
+    $data = $notification->toArray($user);
 
     expect($data)
         ->toHaveKeys(['analysis_id', 'job_role', 'status', 'message', 'match_score'])
-        ->and($data['analysis_id'])->toBe($this->analysis->id)
+        ->and($data['analysis_id'])->toBe($analysis->id)
         ->and($data['job_role'])->toBe('Software Engineer')
         ->and($data['status'])->toBe('completed')
         ->and($data['match_score'])->toBe(85);
 });
 
 test('toBroadcast returns a BroadcastMessage with the correct payload', function (): void {
-    $broadcast = $this->notification->toBroadcast($this->user);
+    [$user, $analysis, $notification] = setupTestData();
+    $broadcast = $notification->toBroadcast($user);
 
     expect($broadcast)->toBeInstanceOf(BroadcastMessage::class)
-        ->and($broadcast->data['analysis_id'])->toBe($this->analysis->id)
+        ->and($broadcast->data['analysis_id'])->toBe($analysis->id)
         ->and($broadcast->data['message'])->toContain('Software Engineer');
 });
 
 test('toSlack returns a SlackMessage instance', function (): void {
-    $slack = $this->notification->toSlack($this->user);
+    [$user, $analysis, $notification] = setupTestData();
+    $slack = $notification->toSlack($user);
 
     expect($slack)->toBeInstanceOf(SlackMessage::class);
 });
 
 test('failed analysis payload contains error and omits match score', function (): void {
-    $this->analysis->update(['status' => 'failed', 'error_message' => 'AI timeout']);
-    $this->analysis->refresh();
+    [$user, $analysis, $notification] = setupTestData();
+    $analysis->update(['status' => 'failed', 'error_message' => 'AI timeout']);
+    $analysis->refresh();
 
-    $notification = new ResumeAnalysisCompleted($this->analysis);
-    $data = $notification->toArray($this->user);
+    $notification = new ResumeAnalysisCompleted($analysis);
+    $data = $notification->toArray($user);
 
     expect($data)
         ->toHaveKey('error')
-        ->not->toHaveKey('match_score')
         ->and($data['message'])->toContain('failed');
+
+    expect($data)->not->toHaveKey('match_score');
 });
 
 test('notification is sent to the user when the job completes', function (): void {
+    [$user, $analysis, $notification] = setupTestData();
     Notification::fake();
 
-    $this->user->notify(new ResumeAnalysisCompleted($this->analysis));
+    $user->notify(new ResumeAnalysisCompleted($analysis));
 
     Notification::assertSentTo(
-        $this->user,
+        $user,
         ResumeAnalysisCompleted::class,
-        function (ResumeAnalysisCompleted $notification): bool {
-            $data = $notification->toArray($this->user);
+        function (ResumeAnalysisCompleted $notification) use ($user, $analysis): bool {
+            $data = $notification->toArray($user);
 
-            return $data['analysis_id'] === $this->analysis->id;
+            return $data['analysis_id'] === $analysis->id;
         }
     );
 });

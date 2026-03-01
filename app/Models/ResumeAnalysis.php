@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Database\Factories\ResumeAnalysisFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -27,7 +28,7 @@ use Illuminate\Support\Carbon;
  */
 class ResumeAnalysis extends Model
 {
-    /** @use HasFactory<\Database\Factories\ResumeAnalysisFactory> */
+    /** @use HasFactory<ResumeAnalysisFactory> */
     use HasFactory;
 
     protected $fillable = [

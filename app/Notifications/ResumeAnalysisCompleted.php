@@ -70,7 +70,7 @@ class ResumeAnalysisCompleted extends Notification implements ShouldBroadcast
                         'Job Role' => $jobRole,
                         'Status' => ucfirst($this->resumeAnalysis->status),
                         ...($matchScore !== null ? ['Match Score' => "{$matchScore}%"] : []),
-                        ...(! $isCompleted ? ['Error' => (string) $this->resumeAnalysis->error_message] : []),
+                        ...($isCompleted ? [] : ['Error' => (string) $this->resumeAnalysis->error_message]),
                     ])
                     ->footer('Resume Analyzer')
                     ->timestamp(now());
