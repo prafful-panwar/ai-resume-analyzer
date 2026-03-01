@@ -18,20 +18,24 @@ Resume Analyzer is an AI-powered Laravel application designed to streamline the 
 ![Detailed Analysis](docs/assets/analysis-top.png)
 
 - **Resume Matching**: Upload a PDF resume and compare it against a Job Description (JD) to get a compatibility score and analysis (Skills, Experience, Education match).
-- **Queue-Based Processing**: Analysis runs in the background using Laravel Queues for a non-blocking user experience.
-- **Auto-Retry Mechanism**: Failed analysis jobs are automatically retried with exponential backoff.
-- **Real-time Status Updates**: The UI auto-refreshes to show the latest analysis status (Pending -> Processing -> Completed).
+- **Queue-Based Processing**: Analysis runs in the background using **Laravel Horizon** with a dedicated `resume-analysis` queue — fully isolated from notification delivery for better reliability.
+- **Real-time Notifications**: Instant in-app toast notifications powered by **Laravel Reverb** (WebSockets). No polling — the UI is notified the moment a job completes or fails.
+- **Slack Notifications**: When a job finishes, a rich Slack message is sent to your configured webhook with the job role, match score (or error), and status — colour-coded green or red.
+- **Auto-Retry Mechanism**: Failed analysis jobs are automatically retried with exponential backoff (1 min → 2 min → 5 min).
 - **Token Usage Tracking**: Detailed statistics (Prompt, Completion, and Total tokens) are saved for every analysis and attempt.
 - **Job Description Management**: Create and manage reusable JDs.
 - **Secure & Private**: Filename sanitization and support for local AI processing (via Ollama) ensure data privacy.
+- **Authorization**: Policy-based access control (`JobDescriptionPolicy`, `ResumeAnalysisPolicy`) ensures users can only view, edit, and delete their own records.
 
 ## 🛠️ Tech Stack
 
 - **Backend**: Laravel 12, PHP 8.4
 - **Frontend**: Vue.js 3, Inertia.js, Tailwind CSS
 - **AI/LLM**: Powered by the **[Laravel AI SDK](https://github.com/laravel/ai)** for model-agnostic integration (Ollama, OpenAI, Anthropic, etc.)
-- **Queue**: Database Driver (for job persistence)
+- **Queue**: Redis + **Laravel Horizon** (dedicated supervisors per queue)
+- **WebSockets**: **Laravel Reverb** for real-time browser push notifications
 - **Database**: MySQL
+- **Monitoring**: Laravel Telescope (local), Laravel Nightwatch (production)
 - **Code Quality**: Rector, Larastan (Level 8), Pest, Pint, GrumPHP
 
 ## 📦 Installation
@@ -62,8 +66,8 @@ Resume Analyzer is an AI-powered Laravel application designed to streamline the 
     php artisan key:generate
     ```
 
-5.  **Configure Database & Queue**
-    Update your `.env` file to use the database queue driver:
+5.  **Configure Database, Queue & WebSockets**
+    Update your `.env` file:
 
     ```env
     DB_CONNECTION=mysql
@@ -72,8 +76,27 @@ Resume Analyzer is an AI-powered Laravel application designed to streamline the 
     DB_DATABASE=resume_analyzer
     DB_USERNAME=root
     DB_PASSWORD=
-    QUEUE_CONNECTION=database
+
+    QUEUE_CONNECTION=redis
+    REDIS_HOST=127.0.0.1
+    REDIS_PORT=6379
+
+    REVERB_APP_ID=your-app-id
+    REVERB_APP_KEY=your-app-key
+    REVERB_APP_SECRET=your-app-secret
+    REVERB_HOST=localhost
+    REVERB_PORT=8080
+    REVERB_SCHEME=http
+
+    # Optional — leave blank to disable Slack notifications
+    SLACK_NOTIFICATIONS_WEBHOOK_URL=
     ```
+
+    > **Note:** Redis must be running. Example installations:
+    >
+    > - macOS: `brew install redis && brew services start redis`
+    > - Docker: `docker run --name redis -p 6379:6379 -d redis`
+    > - [Official Redis Installation Docs](https://redis.io/docs/install/install-redis/)
 
 6.  **Run Migrations**
 
@@ -90,25 +113,47 @@ Resume Analyzer is an AI-powered Laravel application designed to streamline the 
 
 ## 🏃‍♂️ Running the Application
 
-1.  **Start the Laravel Development Server**
+A single command starts everything — the web server, Horizon, Reverb, Vite, and log tailing:
 
-    ```bash
-    php artisan serve
-    ```
+```bash
+composer run dev
+```
 
-2.  **Start the Frontend Build (Asset Compilation)**
+This starts:
 
-    ```bash
-    npm run dev
-    ```
-
-3.  **Start the Queue Worker (Crucial for Analysis)**
-    Since analysis runs in the background, you **must** run the queue worker:
-    ```bash
-    php artisan queue:work
-    ```
+| Process                    | What it does                                   |
+| -------------------------- | ---------------------------------------------- |
+| `php artisan serve`        | Laravel web server on `http://127.0.0.1:8000`  |
+| `php artisan horizon`      | Queue supervisor (Horizon) managing all queues |
+| `php artisan reverb:start` | WebSocket server on `ws://localhost:8080`      |
+| `npm run dev`              | Vite asset bundler with HMR                    |
+| `php artisan pail`         | Real-time log tailing in the terminal          |
 
 Visit `http://127.0.0.1:8000` to access the application.
+
+## 📊 Queue Architecture (Horizon)
+
+Jobs are isolated across three dedicated queues, each with its own supervisor:
+
+| Queue             | Jobs                               | Timeout |
+| ----------------- | ---------------------------------- | ------- |
+| `resume-analysis` | `AnalyzeResumeJob` (AI processing) | 300s    |
+| `notifications`   | Broadcast & Slack notifications    | 30s     |
+| `default`         | Telescope, misc                    | 60s     |
+
+**Horizon dashboard:** `http://127.0.0.1:8000/horizon` — monitor pending, completed, and failed jobs in real time.
+
+## 🔔 Notification System
+
+When a resume analysis job **completes or fails**, the user is notified through multiple channels simultaneously:
+
+| Channel                | Delivery                       | What you see                                                    |
+| ---------------------- | ------------------------------ | --------------------------------------------------------------- |
+| **In-app (WebSocket)** | Instant — pushed via Reverb    | Toast notification in the browser                               |
+| **Database**           | Persistent                     | Stored in `notifications` table                                 |
+| **Slack**              | Instant — via Incoming Webhook | Rich colour-coded attachment with job role, match score / error |
+
+To enable Slack, set `SLACK_NOTIFICATIONS_WEBHOOK_URL` in your `.env`. Leave it blank to disable.
 
 ## 🛡️ Code Quality & Testing
 
@@ -140,7 +185,7 @@ This command runs:
 3.  Select the Job Description you just created.
 4.  Upload a candidate's Resume (PDF).
 5.  Click **Analyze**.
-6.  The job will be queued. You will be redirected to the analysis page where specific details (Score, Summary, Skills Gap) will appear once processing is complete.
+6.  The job is queued. A **real-time toast notification** will pop up the moment analysis completes — no page refresh needed. You'll also receive a Slack message if configured.
 
 ### 2. Viewing, Retrying & History
 
@@ -195,6 +240,7 @@ Resumes contain PII (Phone numbers, Emails). If you are in a highly regulated in
 
 - **Filename Sanitization**: Uploaded files are automatically sanitized to prevent path traversal and script injection attacks.
 - **Validation**: Strict validation rules are applied to all inputs (MIME types, file sizes).
+- **Authorization**: Every read, edit, and delete action is guarded by Laravel Policies — users can only access their own data.
 
 ## 🤝 Contributing
 

@@ -17,7 +17,9 @@ class ResumeAnalysisFactory extends Factory
     public function definition(): array
     {
         return [
-            //
+            'resume_file_path' => 'resumes/fake_resume.pdf',
+            'original_filename' => 'resume.pdf',
+            'status' => 'pending',
         ];
     }
 }
