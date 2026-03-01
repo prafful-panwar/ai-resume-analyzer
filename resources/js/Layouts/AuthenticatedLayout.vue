@@ -1,16 +1,15 @@
 <script setup>
-import { ref, onMounted, onUnmounted, watch, computed } from "vue";
+import { ref, onMounted, onUnmounted } from "vue";
 import ApplicationLogo from "@/Components/ApplicationLogo.vue";
 import Dropdown from "@/Components/Dropdown.vue";
 import DropdownLink from "@/Components/DropdownLink.vue";
 import NavLink from "@/Components/NavLink.vue";
 import ResponsiveNavLink from "@/Components/ResponsiveNavLink.vue";
-import { Link, usePage, router } from "@inertiajs/vue3";
+import { Link, usePage } from "@inertiajs/vue3";
 
 const showingNavigationDropdown = ref(false);
 
 const page = usePage();
-const notifications = computed(() => page.props.notifications || []);
 
 // Global Toast State
 const showGlobalToast = ref(false);
@@ -34,10 +33,39 @@ const saveProcessedId = (id) => {
     );
 };
 
-let notificationInterval = null;
+const showToast = (notification) => {
+    if (processedNotificationIds.value.has(notification.id)) {
+        return;
+    }
+
+    saveProcessedId(notification.id);
+
+    globalToastMessage.value =
+        notification.data?.message ?? notification.message;
+    globalToastType.value =
+        (notification.data?.status ?? notification.status) === "failed"
+            ? "error"
+            : "success";
+    globalToastLink.value = route(
+        "resume-analyses.show",
+        notification.data?.analysis_id ?? notification.analysis_id,
+    );
+    showGlobalToast.value = true;
+
+    localStorage.setItem(
+        "active_toast",
+        JSON.stringify({
+            message: globalToastMessage.value,
+            type: globalToastType.value,
+            link: globalToastLink.value,
+        }),
+    );
+};
+
+let echoChannel = null;
 
 onMounted(() => {
-    // Restore active toast if any
+    // Restore active toast if any (survives page navigations)
     const activeToast = JSON.parse(localStorage.getItem("active_toast"));
     if (activeToast) {
         globalToastMessage.value = activeToast.message;
@@ -46,58 +74,22 @@ onMounted(() => {
         showGlobalToast.value = true;
     }
 
-    // Capture existing notifications as processed ONLY on the very first visit
-    // if the set is empty. Otherwise, we might miss them during navigation.
-    if (processedNotificationIds.value.size === 0) {
-        notifications.value.forEach((n) => saveProcessedId(n.id));
-    }
-
-    // Poll for new notifications every 15 seconds
-    notificationInterval = setInterval(() => {
-        router.reload({
-            only: ["notifications"],
-            preserveScroll: true,
-            preserveState: true,
+    // Listen for real-time notifications via Reverb WebSocket
+    const userId = page.props.auth?.user?.id;
+    if (userId && window.Echo) {
+        echoChannel = window.Echo.private(
+            `App.Models.User.${userId}`,
+        ).notification((notification) => {
+            showToast(notification);
         });
-    }, 15000);
+    }
 });
 
 onUnmounted(() => {
-    if (notificationInterval) clearInterval(notificationInterval);
+    if (echoChannel) {
+        window.Echo.leave(`App.Models.User.${page.props.auth?.user?.id}`);
+    }
 });
-
-// Watch for new notifications
-watch(
-    notifications,
-    (newVal) => {
-        newVal.forEach((n) => {
-            if (!processedNotificationIds.value.has(n.id)) {
-                saveProcessedId(n.id);
-
-                // Trigger Global Toast
-                globalToastMessage.value = n.data.message;
-                globalToastType.value =
-                    n.data.status === "failed" ? "error" : "success";
-                globalToastLink.value = route(
-                    "resume-analyses.show",
-                    n.data.analysis_id,
-                );
-                showGlobalToast.value = true;
-
-                // Persist the active toast content
-                localStorage.setItem(
-                    "active_toast",
-                    JSON.stringify({
-                        message: globalToastMessage.value,
-                        type: globalToastType.value,
-                        link: globalToastLink.value,
-                    }),
-                );
-            }
-        });
-    },
-    { deep: true },
-);
 </script>
 
 <template>

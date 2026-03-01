@@ -69,7 +69,9 @@ class AnalyzeResumeJob implements ShouldBeUnique, ShouldQueue
      */
     public function __construct(
         public ResumeAnalysis $resumeAnalysis
-    ) {}
+    ) {
+        $this->onQueue('resume-analysis');
+    }
 
     /**
      * Get the tags that should be assigned to the job.
