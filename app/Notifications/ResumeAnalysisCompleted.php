@@ -4,9 +4,13 @@ namespace App\Notifications;
 
 use App\Models\ResumeAnalysis;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Notifications\Messages\BroadcastMessage;
+use Illuminate\Notifications\Messages\SlackAttachment;
+use Illuminate\Notifications\Messages\SlackMessage;
 use Illuminate\Notifications\Notification;
 
-class ResumeAnalysisCompleted extends Notification
+class ResumeAnalysisCompleted extends Notification implements ShouldBroadcast
 {
     use Queueable;
 
@@ -15,7 +19,9 @@ class ResumeAnalysisCompleted extends Notification
      */
     public function __construct(
         public ResumeAnalysis $resumeAnalysis
-    ) {}
+    ) {
+        $this->onQueue('notifications');
+    }
 
     /**
      * Get the notification's delivery channels.
@@ -24,7 +30,51 @@ class ResumeAnalysisCompleted extends Notification
      */
     public function via(object $notifiable): array
     {
-        return ['database'];
+        $channels = ['database', 'broadcast'];
+
+        if (config('services.slack.notifications_webhook_url')) {
+            $channels[] = 'slack';
+        }
+
+        return $channels;
+    }
+
+    /**
+     * Get the broadcastable representation of the notification.
+     */
+    public function toBroadcast(object $notifiable): BroadcastMessage
+    {
+        return new BroadcastMessage($this->toArray($notifiable));
+    }
+
+    /**
+     * Get the Slack representation of the notification.
+     */
+    public function toSlack(object $notifiable): SlackMessage
+    {
+        $jobDescription = $this->resumeAnalysis->jobDescription;
+        $jobRole = $jobDescription ? $jobDescription->job_role : 'Unknown Role';
+        $isCompleted = $this->resumeAnalysis->isCompleted();
+
+        /** @var array<string, mixed> $result */
+        $result = (array) $this->resumeAnalysis->result;
+        $matchScore = $isCompleted ? ($result['match_score'] ?? null) : null;
+
+        return (new SlackMessage)
+            ->from('Resume Analyzer', ':page_facing_up:')
+            ->attachment(function (SlackAttachment $attachment) use ($jobRole, $isCompleted, $matchScore): void {
+                $attachment
+                    ->title($isCompleted ? '✅ Resume Analysis Complete' : '❌ Resume Analysis Failed')
+                    ->color($isCompleted ? 'good' : 'danger')
+                    ->fields([
+                        'Job Role' => $jobRole,
+                        'Status' => ucfirst($this->resumeAnalysis->status),
+                        ...($matchScore !== null ? ['Match Score' => "{$matchScore}%"] : []),
+                        ...(! $isCompleted ? ['Error' => (string) $this->resumeAnalysis->error_message] : []),
+                    ])
+                    ->footer('Resume Analyzer')
+                    ->timestamp(now());
+            });
     }
 
     /**
