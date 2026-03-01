@@ -10,7 +10,11 @@
         "inertiajs/inertia-laravel": "^2.0",
         "laravel/ai": "^0.1.3",
         "laravel/framework": "^12.0",
+        "laravel/horizon": "^5.45",
+        "laravel/nightwatch": "^1.22",
+        "laravel/reverb": "^1.0",
         "laravel/sanctum": "^4.0",
+        "laravel/slack-notification-channel": "^3.7",
         "laravel/tinker": "^2.10.1",
         "smalot/pdfparser": "^2.12",
         "tightenco/ziggy": "^2.0"
@@ -57,7 +61,7 @@
         ],
         "dev": [
             "Composer\\Config::disableProcessTimeout",
-            "npx concurrently -c \"#93c5fd,#c4b5fd,#fb7185,#fdba74\" \"php artisan serve\" \"php artisan queue:listen --tries=1 --timeout=0\" \"php artisan pail --timeout=0\" \"npm run dev\" --names=server,queue,logs,vite --kill-others"
+            "npx concurrently -c \"#93c5fd,#c4b5fd,#fb7185,#fdba74,#86efac\" \"php artisan serve --no-interaction\" \"php artisan horizon --no-interaction\" \"php artisan pail --timeout=0 --no-interaction\" \"npm run dev\" \"php artisan reverb:start --no-interaction\" --names=server,horizon,logs,vite,reverb --kill-others"
         ],
         "test": [
             "@php artisan config:clear --ansi",
