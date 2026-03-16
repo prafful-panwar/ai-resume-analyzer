@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ResumeAnalysis;
 use App\Models\User;
+use App\Repositories\Contracts\ResumeAnalysisRepositoryInterface;
 use App\Services\ResumeAnalysisService;
 use Exception;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -21,7 +22,8 @@ class ResumeAnalysisController extends Controller
      * Create a new controller instance.
      */
     public function __construct(
-        private ResumeAnalysisService $analysisService
+        private ResumeAnalysisService $analysisService,
+        private ResumeAnalysisRepositoryInterface $resumeAnalysisRepository
     ) {}
 
     /**
@@ -34,10 +36,7 @@ class ResumeAnalysisController extends Controller
             abort(401);
         }
 
-        $analyses = $user->resumeAnalyses()
-            ->with(['jobDescription'])
-            ->latest()
-            ->get();
+        $analyses = $this->resumeAnalysisRepository->getForUser($user);
 
         return Inertia::render('ResumeAnalyses/Index', [
             'analyses' => $analyses,

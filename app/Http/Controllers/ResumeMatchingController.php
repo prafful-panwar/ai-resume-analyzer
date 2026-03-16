@@ -2,14 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\DTO\AnalyzeResumeData;
 use App\Http\Requests\AnalyzeResumeWithJdRequest;
 use App\Models\JobDescription;
 use App\Models\User;
+use App\Repositories\Contracts\JobDescriptionRepositoryInterface;
 use App\Services\ResumeAnalysisService;
 use Exception;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -21,7 +23,8 @@ class ResumeMatchingController extends Controller
      * Create a new controller instance.
      */
     public function __construct(
-        private ResumeAnalysisService $analysisService
+        private ResumeAnalysisService $analysisService,
+        private JobDescriptionRepositoryInterface $jobDescriptionRepository
     ) {}
 
     /**
@@ -34,9 +37,10 @@ class ResumeMatchingController extends Controller
             abort(401);
         }
 
-        $jobDescriptions = $user->jobDescriptions()
-            ->latest()
-            ->get(['id', 'job_role', 'experience_min', 'experience_max', 'description']);
+        $jobDescriptions = $this->jobDescriptionRepository->getRecentForUser(
+            $user,
+            ['id', 'job_role', 'experience_min', 'experience_max', 'description']
+        );
 
         return Inertia::render('ResumeMatching', [
             'jobDescriptions' => $jobDescriptions,
@@ -54,26 +58,31 @@ class ResumeMatchingController extends Controller
                 return back()->with('error', 'Unauthorized');
             }
 
-            // Verify user owns the JD
             $jobDescriptionId = $request->input('job_description_id');
-            /** @var JobDescription $jobDescription */
-            $jobDescription = JobDescription::findOrFail($jobDescriptionId);
+            /** @var JobDescription|null $jobDescription */
+            $jobDescription = $this->jobDescriptionRepository->findById($jobDescriptionId);
 
-            $this->authorize('view', $jobDescription);
+            if (! $jobDescription) {
+                // Should never happen due to FormRequest validation, but satisfies static analysis
+                throw new Exception('Job description not found.');
+            }
+
+            $dto = AnalyzeResumeData::fromArray($request->validated());
 
             // Delegate to service
             $analysis = $this->analysisService->createAnalysis(
                 $user,
                 $jobDescription,
-                /** @var UploadedFile $resumeFile */
-                $resumeFile = $request->file('resume_file')
+                $dto
             );
 
             return redirect()->route('resume-analyses.show', $analysis)
                 ->with('success', 'Resume analysis queued! You will be notified when it completes.');
 
         } catch (Exception $e) {
-            return back()->with('error', 'Failed to queue analysis: '.$e->getMessage());
+            Log::error('Failed to queue analysis: '.$e->getMessage(), ['trace' => $e->getTraceAsString()]);
+
+            return back()->with('error', 'An unexpected error occurred while queuing the analysis. Please try again or contact support.');
         }
     }
 }

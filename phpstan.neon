@@ -1,5 +1,6 @@
 includes:
     - vendor/larastan/larastan/extension.neon
+    - vendor/pestphp/pest/extension.neon
 
 parameters:
     paths:
@@ -12,6 +13,9 @@ parameters:
 
     ignoreErrors:
         - '#PHPDoc tag @var with type .* is not subtype of native type .*#'
+        -
+            message: '#Call to an undefined method PHPUnit\\Framework\\TestCase::.*#'
+            path: tests/*
 
     # hideUndefinedMethods: true
     # checkMissingIterableValueType: false

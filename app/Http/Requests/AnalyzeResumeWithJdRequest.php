@@ -3,7 +3,9 @@
 namespace App\Http\Requests;
 
 use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class AnalyzeResumeWithJdRequest extends FormRequest
 {
@@ -23,8 +25,13 @@ class AnalyzeResumeWithJdRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'resume_file' => ['required', 'file', 'mimes:pdf', 'max:10240'], // 10MB max
-            'job_description_id' => ['required', 'exists:job_descriptions,id'],
+            'resume' => ['required', 'file', 'mimes:pdf', 'max:10240'], // 10MB max
+            'job_description_id' => [
+                'required',
+                Rule::exists('job_descriptions', 'id')->where(function (Builder $query) {
+                    return $query->where('user_id', auth()->id());
+                }),
+            ],
         ];
     }
 
@@ -36,9 +43,9 @@ class AnalyzeResumeWithJdRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'resume_file.required' => 'Please upload a resume PDF file.',
-            'resume_file.mimes' => 'The resume must be a PDF file.',
-            'resume_file.max' => 'The resume file size must not exceed 10MB.',
+            'resume.required' => 'Please upload a resume PDF file.',
+            'resume.mimes' => 'The resume must be a PDF file.',
+            'resume.max' => 'The resume file size must not exceed 10MB.',
             'job_description_id.required' => 'Please select a job description.',
             'job_description_id.exists' => 'The selected job description does not exist.',
         ];

@@ -4,10 +4,15 @@ namespace App\Services;
 
 use App\Models\ResumeAnalysis;
 use App\Models\User;
+use App\Repositories\Contracts\ResumeAnalysisRepositoryInterface;
 use Illuminate\Support\Collection;
 
 class DashboardService
 {
+    public function __construct(
+        private ResumeAnalysisRepositoryInterface $resumeAnalysisRepository
+    ) {}
+
     /**
      * Get hiring statistics for the pulse cards.
      *
@@ -15,12 +20,7 @@ class DashboardService
      */
     public function getHiringStats(User $user): array
     {
-        $stats = ResumeAnalysis::forUser($user->id)
-            ->selectRaw('COUNT(*) as total_analyses')
-            ->selectRaw("COUNT(CASE WHEN status = 'completed' AND CAST(JSON_EXTRACT(result, '$.match_score') AS UNSIGNED) >= 80 THEN 1 END) as high_potentials")
-            ->selectRaw('SUM(total_tokens) as total_tokens')
-            ->selectRaw("COUNT(CASE WHEN status IN ('pending', 'processing') THEN 1 END) as pending_count")
-            ->first();
+        $stats = $this->resumeAnalysisRepository->getStatisticsForUser($user);
 
         return [
             'total_analyses' => (int) ($stats->total_analyses ?? 0),
@@ -37,11 +37,7 @@ class DashboardService
      */
     public function getRecentActivity(User $user, int $limit = 5): Collection
     {
-        return ResumeAnalysis::forUser($user->id)
-            ->with('jobDescription')
-            ->latest()
-            ->limit($limit)
-            ->get();
+        return $this->resumeAnalysisRepository->getRecentForUser($user, $limit);
     }
 
     /**
@@ -51,11 +47,6 @@ class DashboardService
      */
     public function getTopTalent(User $user, int $limit = 5): Collection
     {
-        return ResumeAnalysis::forUser($user->id)
-            ->with('jobDescription')
-            ->byStatus('completed')
-            ->orderByRaw("CAST(JSON_EXTRACT(result, '$.match_score') AS UNSIGNED) DESC")
-            ->limit($limit)
-            ->get();
+        return $this->resumeAnalysisRepository->getTopTalentForUser($user, $limit);
     }
 }

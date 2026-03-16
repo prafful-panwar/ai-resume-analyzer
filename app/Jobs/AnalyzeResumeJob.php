@@ -3,7 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\ResumeAnalysis;
-use App\Notifications\ResumeAnalysisCompleted;
+use App\Repositories\Contracts\ResumeAnalysisRepositoryInterface;
 use App\Services\ResumeAnalysisService;
 use DateTime;
 use Exception;
@@ -21,7 +21,7 @@ class AnalyzeResumeJob implements ShouldBeUnique, ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public const QUEUE = 'resume-analysis';
+    public const string QUEUE = 'resume-analysis';
 
     /**
      * The number of times the job may be attempted.
@@ -95,8 +95,6 @@ class AnalyzeResumeJob implements ShouldBeUnique, ShouldQueue
     public function handle(ResumeAnalysisService $analysisService): void
     {
         $analysisService->performAnalysis($this->resumeAnalysis);
-
-        $this->notifyUser();
     }
 
     /**
@@ -105,21 +103,6 @@ class AnalyzeResumeJob implements ShouldBeUnique, ShouldQueue
     public function failed(Throwable $exception): void
     {
         $this->logFailure($exception, true);
-        $this->markAsFailed($exception->getMessage());
-        $this->notifyUser();
-    }
-
-    /**
-     * Mark the analysis as failed.
-     */
-    private function markAsFailed(string $errorMessage): void
-    {
-        if ($this->resumeAnalysis->status !== 'failed') {
-            $this->resumeAnalysis->update([
-                'status' => 'failed',
-                'error_message' => $errorMessage,
-            ]);
-        }
     }
 
     /**
@@ -133,15 +116,12 @@ class AnalyzeResumeJob implements ShouldBeUnique, ShouldQueue
             'exception_class' => get_class($exception),
         ];
 
-        // Create database log entry
         try {
-            $this->resumeAnalysis->logs()->create([
-                'status' => 'failed',
-                'error_message' => $exception->getMessage(),
-                'attempt' => $this->attempts(),
-                'job_uuid' => $this->job ? $this->job->getJobId() : null,
-                'exception_trace' => $exception->getTraceAsString(),
-            ]);
+            app(ResumeAnalysisRepositoryInterface::class)->markAsFailed(
+                $this->resumeAnalysis,
+                $exception->getMessage(),
+                $this->attempts()
+            );
         } catch (Exception $e) {
             Log::error('Failed to create resume analysis log entry', ['error' => $e->getMessage()]);
         }
@@ -153,20 +133,6 @@ class AnalyzeResumeJob implements ShouldBeUnique, ShouldQueue
             Log::error('Resume analysis job failed permanently', $logData);
         } else {
             Log::warning('Resume analysis attempt failed (will retry)', $logData);
-        }
-    }
-
-    /**
-     * Notify the user about analysis completion or failure.
-     */
-    private function notifyUser(): void
-    {
-        $user = $this->resumeAnalysis->user;
-
-        if ($user) {
-            $user->notify(new ResumeAnalysisCompleted($this->resumeAnalysis));
-        } else {
-            Log::warning('Could not notify user: User not found for analysis ID: '.$this->resumeAnalysis->id);
         }
     }
 }
