@@ -6,9 +6,7 @@ use App\Models\JobDescription;
 use App\Models\ResumeAnalysis;
 use App\Models\User;
 use App\Repositories\Contracts\ResumeAnalysisRepositoryInterface;
-use Exception;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 
 class ResumeAnalysisRepository implements ResumeAnalysisRepositoryInterface
 {
@@ -132,9 +130,14 @@ class ResumeAnalysisRepository implements ResumeAnalysisRepositoryInterface
         int $totalTokens,
         int $attemptNumber
     ): bool {
-        DB::beginTransaction();
-
-        try {
+        return $analysis->getConnection()->transaction(function () use (
+            $analysis,
+            $result,
+            $promptTokens,
+            $completionTokens,
+            $totalTokens,
+            $attemptNumber
+        ): bool {
             $analysis->update([
                 'status' => 'completed',
                 'result' => $result,
@@ -153,13 +156,8 @@ class ResumeAnalysisRepository implements ResumeAnalysisRepositoryInterface
                 'attempt' => $attemptNumber,
             ]);
 
-            DB::commit();
-
             return true;
-        } catch (Exception $e) {
-            DB::rollBack();
-            throw $e;
-        }
+        });
     }
 
     /**
@@ -167,9 +165,7 @@ class ResumeAnalysisRepository implements ResumeAnalysisRepositoryInterface
      */
     public function markAsFailed(ResumeAnalysis $analysis, string $errorMessage, int $attemptNumber): true
     {
-        DB::beginTransaction();
-
-        try {
+        return $analysis->getConnection()->transaction(function () use ($analysis, $errorMessage, $attemptNumber): true {
             $analysis->update([
                 'status' => 'failed',
                 'error_message' => $errorMessage,
@@ -181,14 +177,8 @@ class ResumeAnalysisRepository implements ResumeAnalysisRepositoryInterface
                 'attempt' => $attemptNumber,
             ]);
 
-            DB::commit();
-
             return true;
-        } catch (Exception $e) {
-            DB::rollBack();
-
-            throw $e;
-        }
+        });
     }
 
     /**

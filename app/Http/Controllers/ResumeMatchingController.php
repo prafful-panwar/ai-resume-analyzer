@@ -64,8 +64,10 @@ class ResumeMatchingController extends Controller
 
             if (! $jobDescription) {
                 // Should never happen due to FormRequest validation, but satisfies static analysis
-                throw new Exception('Job description not found.');
+                abort(404, 'Job description not found.');
             }
+
+            $this->authorize('view', $jobDescription);
 
             $dto = AnalyzeResumeData::fromArray($request->validated());
 

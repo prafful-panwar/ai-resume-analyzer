@@ -10,6 +10,7 @@ use App\Models\JobDescription;
 use App\Models\User;
 use App\Repositories\Contracts\JobDescriptionRepositoryInterface;
 use App\Services\ResumeAnalysisService;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
 use Throwable;
@@ -42,6 +43,8 @@ class ResumeMatchingController extends Controller
                 return response()->json(['success' => false, 'error' => 'Job description not found.'], 404);
             }
 
+            $this->authorize('view', $jobDescription);
+
             $dto = AnalyzeResumeData::fromArray($request->validated());
 
             $analysis = $this->analysisService->analyzeSynchronously(
@@ -52,6 +55,8 @@ class ResumeMatchingController extends Controller
 
             return ResumeAnalysisResource::make($analysis);
 
+        } catch (AuthorizationException) {
+            return response()->json(['success' => false, 'error' => 'Forbidden.'], 403);
         } catch (Throwable) {
             return response()->json([
                 'success' => false,
