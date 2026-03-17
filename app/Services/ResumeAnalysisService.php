@@ -3,12 +3,16 @@
 namespace App\Services;
 
 use App\Ai\Agents\ResumeAnalystAgent;
+use App\DTO\AnalyzeResumeData;
 use App\Jobs\AnalyzeResumeJob;
 use App\Models\JobDescription;
 use App\Models\ResumeAnalysis;
 use App\Models\User;
+use App\Notifications\ResumeAnalysisCompleted;
+use App\Repositories\Contracts\ResumeAnalysisRepositoryInterface;
 use Exception;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Laravel\Ai\Responses\StructuredAgentResponse;
@@ -22,29 +26,45 @@ use Smalot\PdfParser\Parser;
  */
 class ResumeAnalysisService
 {
+    public function __construct(
+        private ResumeAnalysisRepositoryInterface $resumeAnalysisRepository
+    ) {}
+
+    /**
+     * Setup the initial analysis record and store the file.
+     */
+    private function setupAnalysisRecord(User $user, JobDescription $jobDescription, AnalyzeResumeData $data): ResumeAnalysis
+    {
+        $filePath = $this->storeResumeFile($data->resume);
+        $sanitizedFilename = $this->sanitizeFilename($data->resume->getClientOriginalName());
+
+        return $this->resumeAnalysisRepository->createForUser(
+            $user,
+            $jobDescription,
+            $filePath,
+            $sanitizedFilename
+        );
+    }
+
     /**
      * Create a new resume analysis and dispatch it to the queue.
      */
-    public function createAnalysis(User $user, JobDescription $jobDescription, UploadedFile $resumeFile): ResumeAnalysis
+    public function createAnalysis(User $user, JobDescription $jobDescription, AnalyzeResumeData $data): ResumeAnalysis
     {
-        // Store the resume file
-        $filePath = $this->storeResumeFile($resumeFile);
-
-        // Sanitize the original filename for security
-        $sanitizedFilename = $this->sanitizeFilename($resumeFile->getClientOriginalName());
-
-        // Create analysis record
-        $analysis = $user->resumeAnalyses()->create([
-            'job_description_id' => $jobDescription->id,
-            'resume_file_path' => $filePath,
-            'original_filename' => $sanitizedFilename,
-            'status' => 'pending',
-        ]);
-
-        // Dispatch job to queue
+        $analysis = $this->setupAnalysisRecord($user, $jobDescription, $data);
         $this->dispatchAnalysisJob($analysis);
 
         return $analysis;
+    }
+
+    /**
+     * Create and perform analysis synchronously (e.g., for API calls).
+     */
+    public function analyzeSynchronously(User $user, JobDescription $jobDescription, AnalyzeResumeData $data): ResumeAnalysis
+    {
+        $analysis = $this->setupAnalysisRecord($user, $jobDescription, $data);
+
+        return $this->performAnalysis($analysis);
     }
 
     /**
@@ -59,26 +79,17 @@ class ResumeAnalysisService
         }
 
         // Log the current state before retrying
-        $analysis->logs()->create([
-            'status' => $analysis->status,
-            'error_message' => $analysis->error_message,
-            'result' => $analysis->result,
-            'attempt' => $analysis->logs()->count() + 1,
-        ]);
+        $this->resumeAnalysisRepository->logRetry($analysis);
 
         // Reset status and clear error
-        $analysis->update([
-            'status' => 'pending',
-            'error_message' => null,
-            'result' => null,
-        ]);
+        $this->resumeAnalysisRepository->resetForRetry($analysis);
 
         // Re-dispatch the job
         $this->dispatchAnalysisJob($analysis);
 
-        $fresh = $analysis->fresh();
+        $fresh = $this->resumeAnalysisRepository->findById($analysis->id);
 
-        if (! $fresh) {
+        if (! $fresh instanceof ResumeAnalysis) {
             throw new Exception('Failed to reload analysis record.');
         }
 
@@ -142,10 +153,10 @@ class ResumeAnalysisService
      */
     public function performAnalysis(ResumeAnalysis $analysis): ResumeAnalysis
     {
-        $attemptNumber = $analysis->logs()->count() + 1;
+        $attemptNumber = $this->resumeAnalysisRepository->getNextAttemptNumber($analysis);
 
         // Update status to processing
-        $analysis->update(['status' => 'processing']);
+        $this->resumeAnalysisRepository->markAsProcessing($analysis);
 
         try {
             // Parse PDF
@@ -187,38 +198,45 @@ class ResumeAnalysisService
                 'experience_range' => "{$jobDescription->experience_min}-{$jobDescription->experience_max} years",
             ];
 
-            $analysis->update([
-                'status' => 'completed',
-                'result' => $matchingData,
-                'prompt_tokens' => $promptTokens,
-                'completion_tokens' => $completionTokens,
-                'total_tokens' => $totalTokens,
-            ]);
+            // Finalize analysis as completed via Repo
+            $this->resumeAnalysisRepository->markAsCompleted(
+                $analysis,
+                $matchingData,
+                $promptTokens,
+                $completionTokens,
+                $totalTokens,
+                $attemptNumber
+            );
 
-            $analysis->logs()->create([
-                'status' => 'completed',
-                'result' => $matchingData,
-                'prompt_tokens' => $promptTokens,
-                'completion_tokens' => $completionTokens,
-                'total_tokens' => $totalTokens,
-                'attempt' => $attemptNumber,
-            ]);
+            $this->notifyUserOfCompletion($analysis);
 
             return $analysis;
 
         } catch (Exception $e) {
-            $analysis->update([
-                'status' => 'failed',
-                'error_message' => Str::limit($e->getMessage(), 500),
-            ]);
+            // Finalize analysis as failed via Repo
+            $this->resumeAnalysisRepository->markAsFailed(
+                $analysis,
+                Str::limit($e->getMessage(), 500),
+                $attemptNumber
+            );
 
-            $analysis->logs()->create([
-                'status' => 'failed',
-                'error_message' => Str::limit($e->getMessage(), 500),
-                'attempt' => $attemptNumber,
-            ]);
+            $this->notifyUserOfCompletion($analysis);
 
             throw $e;
+        }
+    }
+
+    /**
+     * Notify the user about analysis completion or failure.
+     */
+    private function notifyUserOfCompletion(ResumeAnalysis $analysis): void
+    {
+        $user = $analysis->user;
+
+        if ($user) {
+            $user->notify(new ResumeAnalysisCompleted($analysis));
+        } else {
+            Log::warning('Could not notify user: User not found for analysis ID: '.$analysis->id);
         }
     }
 

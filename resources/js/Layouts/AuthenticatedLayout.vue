@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from "vue";
+import { ref, watch, onMounted, onUnmounted } from "vue";
 import ApplicationLogo from "@/Components/ApplicationLogo.vue";
 import Dropdown from "@/Components/Dropdown.vue";
 import DropdownLink from "@/Components/DropdownLink.vue";
@@ -11,91 +11,46 @@ const showingNavigationDropdown = ref(false);
 
 const page = usePage();
 
-// Global Toast State
-const showGlobalToast = ref(false);
-const globalToastMessage = ref("");
-const globalToastType = ref("success");
-const globalToastLink = ref(null);
-const closeGlobalToast = () => {
-    showGlobalToast.value = false;
-    localStorage.removeItem(
-        `active_toast_${page.props.auth?.user?.id || "guest"}`,
-    );
+// Global Toast Queue
+const toasts = ref([]);
+
+const storageKey = () =>
+    `active_toasts_${page.props.auth?.user?.id || "guest"}`;
+
+const saveToastsToStorage = () => {
+    localStorage.setItem(storageKey(), JSON.stringify(toasts.value));
 };
 
-const getSafeParsedStorage = (key, fallback = []) => {
-    try {
-        const item = localStorage.getItem(key);
-        if (!item) return fallback;
-        const parsed = JSON.parse(item);
-        if (Array.isArray(parsed)) return parsed;
-        return [parsed];
-    } catch {
-        return fallback;
-    }
+const dismissToast = (id) => {
+    toasts.value = toasts.value.filter((t) => t.id !== id);
+    saveToastsToStorage();
 };
 
-const processedNotificationIds = ref(
-    new Set(
-        getSafeParsedStorage(
-            `processed_toasts_${page.props.auth?.user?.id || "guest"}`,
-            [],
-        ),
-    ),
-);
-
-const saveProcessedId = (id) => {
-    processedNotificationIds.value.add(id);
-    localStorage.setItem(
-        `processed_toasts_${page.props.auth?.user?.id || "guest"}`,
-        JSON.stringify([...processedNotificationIds.value]),
-    );
-};
-
-const showToast = (notification) => {
-    if (processedNotificationIds.value.has(notification.id)) {
-        return;
-    }
-
-    saveProcessedId(notification.id);
-
-    globalToastMessage.value =
-        notification.data?.message ?? notification.message;
-    globalToastType.value =
-        (notification.data?.status ?? notification.status) === "failed"
-            ? "error"
-            : "success";
-    const analysisId =
-        notification.data?.analysis_id ?? notification.analysis_id;
-    globalToastLink.value = analysisId
-        ? route("resume-analyses.show", analysisId)
-        : "#";
-    showGlobalToast.value = true;
-
-    localStorage.setItem(
-        `active_toast_${page.props.auth?.user?.id || "guest"}`,
-        JSON.stringify({
-            message: globalToastMessage.value,
-            type: globalToastType.value,
-            link: globalToastLink.value,
-        }),
-    );
+const pushToast = (message, type, link = null) => {
+    toasts.value.push({
+        id: Date.now() + Math.random(),
+        message,
+        type,
+        link,
+    });
+    saveToastsToStorage();
 };
 
 let echoChannel = null;
 let activeChannelName = null;
 
 onMounted(() => {
-    // Restore active toast if any (survives page navigations)
-    const activeToast = getSafeParsedStorage(
-        `active_toast_${page.props.auth?.user?.id || "guest"}`,
-        null,
-    );
-    if (activeToast) {
-        globalToastMessage.value = activeToast.message;
-        globalToastType.value = activeToast.type;
-        globalToastLink.value = activeToast.link;
-        showGlobalToast.value = true;
+    // Restore any pending toasts that survived page navigation
+    try {
+        const stored = localStorage.getItem(storageKey());
+        if (stored) {
+            const parsed = JSON.parse(stored);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                toasts.value = parsed;
+            }
+        }
+    } catch {
+        // ignore corrupt storage
     }
 
     // Listen for real-time notifications via Reverb WebSocket
@@ -104,7 +59,19 @@ onMounted(() => {
         activeChannelName = `App.Models.User.${userId}`;
         echoChannel = window.Echo.private(activeChannelName).notification(
             (notification) => {
-                showToast(notification);
+                const message =
+                    notification.data?.message ?? notification.message;
+                const type =
+                    (notification.data?.status ?? notification.status) ===
+                    "failed"
+                        ? "error"
+                        : "success";
+                const analysisId =
+                    notification.data?.analysis_id ?? notification.analysis_id;
+                const link = analysisId
+                    ? route("resume-analyses.show", analysisId)
+                    : null;
+                pushToast(message, type, link);
             },
         );
     }
@@ -115,6 +82,19 @@ onUnmounted(() => {
         window.Echo.leave(activeChannelName);
     }
 });
+
+// Show toast for flash messages sent via Inertia (e.g. redirect->with('success', ...))
+watch(
+    () => page.props.flash,
+    (flash) => {
+        if (flash?.success) {
+            pushToast(flash.success, "success", null);
+        } else if (flash?.error) {
+            pushToast(flash.error, "error", null);
+        }
+    },
+    { immediate: true },
+);
 </script>
 
 <template>
@@ -347,23 +327,22 @@ onUnmounted(() => {
             </main>
         </div>
 
-        <!-- Global Toast Notification -->
+        <!-- Global Toast Queue -->
         <Teleport to="body">
-            <div
-                v-if="showGlobalToast"
-                class="fixed right-4 top-4 z-[9999] transform transition-all duration-300 ease-in-out"
-            >
+            <div class="fixed right-4 top-4 z-[9999] flex flex-col gap-3">
                 <div
+                    v-for="toast in toasts"
+                    :key="toast.id"
                     :class="[
-                        'flex w-80 items-start space-x-4 rounded-lg p-4 shadow-2xl border-l-4',
-                        globalToastType === 'success'
+                        'flex w-80 items-start space-x-4 rounded-lg p-4 shadow-2xl border-l-4 transition-all duration-300',
+                        toast.type === 'success'
                             ? 'bg-white dark:bg-gray-800 border-green-500'
                             : 'bg-white dark:bg-gray-800 border-red-500',
                     ]"
                 >
                     <div class="flex-shrink-0">
                         <svg
-                            v-if="globalToastType === 'success'"
+                            v-if="toast.type === 'success'"
                             class="h-6 w-6 text-green-500"
                             fill="none"
                             viewBox="0 0 24 24"
@@ -395,22 +374,18 @@ onUnmounted(() => {
                         <p
                             class="text-sm font-bold text-gray-900 dark:text-white"
                         >
-                            {{
-                                globalToastType === "success"
-                                    ? "Success"
-                                    : "Error"
-                            }}
+                            {{ toast.type === "success" ? "Success" : "Error" }}
                         </p>
                         <p
                             class="mt-1 text-sm text-gray-600 dark:text-gray-300"
                         >
-                            {{ globalToastMessage }}
+                            {{ toast.message }}
                         </p>
-                        <div class="mt-3">
+                        <div v-if="toast.link" class="mt-3">
                             <Link
-                                :href="globalToastLink"
+                                :href="toast.link"
                                 class="text-sm font-bold text-indigo-600 hover:text-indigo-500 underline"
-                                @click="closeGlobalToast"
+                                @click="dismissToast(toast.id)"
                             >
                                 View Results
                             </Link>
@@ -418,7 +393,7 @@ onUnmounted(() => {
                     </div>
                     <button
                         class="flex-shrink-0 text-gray-400 hover:text-gray-500 focus:outline-none"
-                        @click="closeGlobalToast"
+                        @click="dismissToast(toast.id)"
                     >
                         <svg
                             class="h-5 w-5"

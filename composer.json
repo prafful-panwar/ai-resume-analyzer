@@ -76,6 +76,10 @@
             "php -d memory_limit=2G ./vendor/bin/pest --type-coverage",
             "npm run lint"
         ],
+        "format": [
+            "./vendor/bin/rector process",
+            "./vendor/bin/pint"
+        ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi"

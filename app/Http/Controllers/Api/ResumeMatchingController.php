@@ -2,24 +2,32 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\DTO\AnalyzeResumeData;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AnalyzeResumeWithJdRequest;
+use App\Http\Resources\ResumeAnalysisResource;
 use App\Models\JobDescription;
 use App\Models\User;
+use App\Repositories\Contracts\JobDescriptionRepositoryInterface;
 use App\Services\ResumeAnalysisService;
-use Exception;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\UploadedFile;
+use Throwable;
 
 class ResumeMatchingController extends Controller
 {
+    use AuthorizesRequests;
+
+    public function __construct(
+        private ResumeAnalysisService $analysisService,
+        private JobDescriptionRepositoryInterface $jobDescriptionRepository
+    ) {}
+
     /**
      * Analyze resume against job description
      */
-    /**
-     * Analyze resume against job description
-     */
-    public function analyze(AnalyzeResumeWithJdRequest $request, ResumeAnalysisService $analysisService): JsonResponse
+    public function analyze(AnalyzeResumeWithJdRequest $request): JsonResponse|ResumeAnalysisResource
     {
         try {
             $user = $request->user();
@@ -27,37 +35,32 @@ class ResumeMatchingController extends Controller
                 return response()->json(['success' => false, 'error' => 'Unauthorized'], 401);
             }
 
-            // Verify user owns the JD
             $jobDescriptionId = $request->input('job_description_id');
-            /** @var JobDescription $jobDescription */
-            $jobDescription = JobDescription::findOrFail($jobDescriptionId);
+            /** @var JobDescription|null $jobDescription */
+            $jobDescription = $this->jobDescriptionRepository->findById($jobDescriptionId);
 
-            if ($jobDescription->user_id !== $user->id) {
-                return response()->json(['success' => false, 'error' => 'Unauthorized'], 403);
+            if (! $jobDescription) {
+                return response()->json(['success' => false, 'error' => 'Job description not found.'], 404);
             }
 
-            // 1. Create the analysis record (and store the file)
-            $analysis = $analysisService->createAnalysis(
+            $this->authorize('view', $jobDescription);
+
+            $dto = AnalyzeResumeData::fromArray($request->validated());
+
+            $analysis = $this->analysisService->analyzeSynchronously(
                 $user,
                 $jobDescription,
-                /** @var UploadedFile $resumeFile */
-                $resumeFile = $request->file('resume_file')
+                $dto
             );
 
-            // 2. Perform analysis synchronously for the API response
-            // We use the service method to ensure identical logic (PDF parsing, AI prompt, etc.)
-            $analysisService->performAnalysis($analysis);
+            return ResumeAnalysisResource::make($analysis);
 
-            return response()->json([
-                'success' => true,
-                'data' => (array) $analysis->result,
-            ], 200);
-
-        } catch (Exception $e) {
+        } catch (AuthorizationException) {
+            return response()->json(['success' => false, 'error' => 'Forbidden.'], 403);
+        } catch (Throwable) {
             return response()->json([
                 'success' => false,
-                'error' => 'Failed to analyze resume',
-                'message' => $e->getMessage(),
+                'error' => 'Failed to analyze resume.',
             ], 500);
         }
     }

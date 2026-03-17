@@ -65,25 +65,18 @@ const analyzeResume = () => {
     router.post(
         route("resume-matching.analyze"),
         {
-            resume_file: resumeFile.value,
+            resume: resumeFile.value,
             job_description_id: selectedJdId.value,
         },
         {
             forceFormData: true,
-            onSuccess: (page) => {
+            onSuccess: () => {
                 analyzing.value = false;
-                // Check for flash messages
-                if (page.props.flash?.matchingResult) {
-                    result.value = page.props.flash.matchingResult;
-                }
-                if (page.props.flash?.error) {
-                    error.value = page.props.flash.error;
-                }
             },
             onError: (errors) => {
                 analyzing.value = false;
                 error.value =
-                    errors.resume_file ||
+                    errors.resume ||
                     errors.job_description_id ||
                     "Failed to analyze resume";
             },

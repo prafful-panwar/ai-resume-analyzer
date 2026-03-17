@@ -80,7 +80,7 @@ class ResumeAnalysisServiceTest extends TestCase
             'status' => 'pending',
         ]);
 
-        $service = new ResumeAnalysisService;
+        $service = app(ResumeAnalysisService::class);
         $result = $service->performAnalysis($analysis);
 
         $this->assertEquals('completed', $result->status);

@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\DTO\JobDescriptionData;
 use App\Http\Requests\StoreJobDescriptionRequest;
 use App\Models\JobDescription;
 use App\Models\User;
+use App\Repositories\Contracts\JobDescriptionRepositoryInterface;
+use App\Services\JobDescriptionService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -14,6 +17,11 @@ use Inertia\Response;
 class JobDescriptionController extends Controller
 {
     use AuthorizesRequests;
+
+    public function __construct(
+        private JobDescriptionRepositoryInterface $jobDescriptionRepository,
+        private JobDescriptionService $jobDescriptionService
+    ) {}
 
     /**
      * Display a listing of the resource.
@@ -25,9 +33,7 @@ class JobDescriptionController extends Controller
             abort(401);
         }
 
-        $jobDescriptions = $user->jobDescriptions()
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $jobDescriptions = $this->jobDescriptionRepository->getForUser($user);
 
         return Inertia::render('JobDescriptions/Index', [
             'jobDescriptions' => $jobDescriptions,
@@ -50,7 +56,8 @@ class JobDescriptionController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        $user->jobDescriptions()->create($request->validated());
+        $dto = JobDescriptionData::fromArray($request->validated());
+        $this->jobDescriptionService->createJobDescription($user, $dto);
 
         return redirect()->route('job-descriptions.index')
             ->with('success', 'Job description created successfully');
@@ -75,10 +82,16 @@ class JobDescriptionController extends Controller
     {
         $this->authorize('update', $jobDescription);
 
-        $jobDescription->update($request->validated());
+        $dto = JobDescriptionData::fromArray($request->validated());
+        $updated = $this->jobDescriptionService->updateJobDescription($jobDescription, $dto);
+
+        if (! $updated) {
+            return redirect()->back()
+                ->with('error', 'Failed to update job description. Please try again.');
+        }
 
         return redirect()->route('job-descriptions.index')
-            ->with('success', 'Job description updated successfully');
+            ->with('success', 'Job description updated successfully.');
     }
 
     /**
@@ -88,9 +101,14 @@ class JobDescriptionController extends Controller
     {
         $this->authorize('delete', $jobDescription);
 
-        $jobDescription->delete();
+        $deleted = $this->jobDescriptionService->deleteJobDescription($jobDescription);
+
+        if (! $deleted) {
+            return redirect()->back()
+                ->with('error', 'Failed to delete job description. Please try again.');
+        }
 
         return redirect()->route('job-descriptions.index')
-            ->with('success', 'Job description deleted successfully');
+            ->with('success', 'Job description deleted successfully.');
     }
 }
