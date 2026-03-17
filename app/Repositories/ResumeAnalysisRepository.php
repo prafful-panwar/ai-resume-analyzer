@@ -44,17 +44,26 @@ class ResumeAnalysisRepository implements ResumeAnalysisRepositoryInterface
      */
     public function getStatisticsForUser(User $user): object
     {
-        return ResumeAnalysis::forUser($user->id)
-            ->selectRaw('COUNT(*) as total_analyses')
-            ->selectRaw("COUNT(CASE WHEN status = 'completed' AND CAST(JSON_EXTRACT(result, '$.match_score') AS UNSIGNED) >= 80 THEN 1 END) as high_potentials")
-            ->selectRaw('SUM(total_tokens) as total_tokens')
-            ->selectRaw("COUNT(CASE WHEN status IN ('pending', 'processing') THEN 1 END) as pending_count")
-            ->first() ?? (object) [
-                'total_analyses' => 0,
-                'high_potentials' => 0,
-                'total_tokens' => 0,
-                'pending_count' => 0,
-            ];
+        $analyses = ResumeAnalysis::forUser($user->id)->get(['status', 'result', 'total_tokens']);
+
+        $totalTokens = $analyses->sum('total_tokens');
+
+        $highPotentials = $analyses->filter(
+            fn (ResumeAnalysis $analysis): bool => $analysis->status === 'completed'
+                && isset($analysis->result['match_score'])
+                && (int) $analysis->result['match_score'] >= 80
+        )->count();
+
+        $pendingCount = $analyses->filter(
+            fn (ResumeAnalysis $analysis): bool => in_array($analysis->status, ['pending', 'processing'], true)
+        )->count();
+
+        return (object) [
+            'total_analyses' => $analyses->count(),
+            'high_potentials' => $highPotentials,
+            'total_tokens' => $totalTokens,
+            'pending_count' => $pendingCount,
+        ];
     }
 
     /**
@@ -67,9 +76,10 @@ class ResumeAnalysisRepository implements ResumeAnalysisRepositoryInterface
         return ResumeAnalysis::forUser($user->id)
             ->with('jobDescription')
             ->byStatus('completed')
-            ->orderByRaw("CAST(JSON_EXTRACT(result, '$.match_score') AS UNSIGNED) DESC")
-            ->limit($limit)
-            ->get();
+            ->get()
+            ->sortByDesc(fn (ResumeAnalysis $analysis): int => (int) ($analysis->result['match_score'] ?? 0))
+            ->take($limit)
+            ->values();
     }
 
     /**
@@ -155,7 +165,7 @@ class ResumeAnalysisRepository implements ResumeAnalysisRepositoryInterface
     /**
      * Mark analysis as failed and log the error
      */
-    public function markAsFailed(ResumeAnalysis $analysis, string $errorMessage, int $attemptNumber): bool
+    public function markAsFailed(ResumeAnalysis $analysis, string $errorMessage, int $attemptNumber): true
     {
         DB::beginTransaction();
 
@@ -177,7 +187,7 @@ class ResumeAnalysisRepository implements ResumeAnalysisRepositoryInterface
         } catch (Exception $e) {
             DB::rollBack();
 
-            return false;
+            throw $e;
         }
     }
 

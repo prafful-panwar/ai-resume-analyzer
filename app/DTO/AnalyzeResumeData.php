@@ -3,6 +3,7 @@
 namespace App\DTO;
 
 use Illuminate\Http\UploadedFile;
+use ValueError;
 
 class AnalyzeResumeData
 {
@@ -16,8 +17,14 @@ class AnalyzeResumeData
      */
     public static function fromArray(array $data): self
     {
+        $jobDescriptionId = (int) ($data['job_description_id'] ?? 0);
+
+        if ($jobDescriptionId <= 0) {
+            throw new ValueError('job_description_id must be a positive integer.');
+        }
+
         return new self(
-            job_description_id: (int) ($data['job_description_id'] ?? 0),
+            job_description_id: $jobDescriptionId,
             resume: $data['resume'],
         );
     }

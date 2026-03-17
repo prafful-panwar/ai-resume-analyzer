@@ -83,10 +83,15 @@ class JobDescriptionController extends Controller
         $this->authorize('update', $jobDescription);
 
         $dto = JobDescriptionData::fromArray($request->validated());
-        $this->jobDescriptionService->updateJobDescription($jobDescription, $dto);
+        $updated = $this->jobDescriptionService->updateJobDescription($jobDescription, $dto);
+
+        if (! $updated) {
+            return redirect()->back()
+                ->with('error', 'Failed to update job description. Please try again.');
+        }
 
         return redirect()->route('job-descriptions.index')
-            ->with('success', 'Job description updated successfully');
+            ->with('success', 'Job description updated successfully.');
     }
 
     /**
@@ -96,9 +101,14 @@ class JobDescriptionController extends Controller
     {
         $this->authorize('delete', $jobDescription);
 
-        $this->jobDescriptionService->deleteJobDescription($jobDescription);
+        $deleted = $this->jobDescriptionService->deleteJobDescription($jobDescription);
+
+        if (! $deleted) {
+            return redirect()->back()
+                ->with('error', 'Failed to delete job description. Please try again.');
+        }
 
         return redirect()->route('job-descriptions.index')
-            ->with('success', 'Job description deleted successfully');
+            ->with('success', 'Job description deleted successfully.');
     }
 }

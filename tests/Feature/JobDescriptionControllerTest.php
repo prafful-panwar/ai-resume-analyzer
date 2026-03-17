@@ -115,7 +115,7 @@ test('user can update their own job description', function (): void {
         ->put(route('job-descriptions.update', $job), $data);
 
     $response->assertRedirect(route('job-descriptions.index'))
-        ->assertSessionHas('success', 'Job description updated successfully');
+        ->assertSessionHas('success', 'Job description updated successfully.');
 
     $this->assertDatabaseHas('job_descriptions', [
         'id' => $job->id,
@@ -152,7 +152,7 @@ test('user can delete their own job description', function (): void {
         ->delete(route('job-descriptions.destroy', $job));
 
     $response->assertRedirect(route('job-descriptions.index'))
-        ->assertSessionHas('success', 'Job description deleted successfully');
+        ->assertSessionHas('success', 'Job description deleted successfully.');
 
     $this->assertDatabaseMissing('job_descriptions', [
         'id' => $job->id,

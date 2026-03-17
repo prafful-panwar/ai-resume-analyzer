@@ -53,6 +53,7 @@ class JobDescriptionRepository implements JobDescriptionRepositoryInterface
             'experience_min' => $data->experience_min,
             'experience_max' => $data->experience_max,
             'description' => $data->description,
+            'requirements' => $data->requirements,
         ]);
     }
 
@@ -66,6 +67,7 @@ class JobDescriptionRepository implements JobDescriptionRepositoryInterface
             'experience_min' => $data->experience_min,
             'experience_max' => $data->experience_max,
             'description' => $data->description,
+            'requirements' => $data->requirements,
         ]);
     }
 

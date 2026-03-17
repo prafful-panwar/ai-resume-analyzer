@@ -72,7 +72,7 @@ interface ResumeAnalysisRepositoryInterface
     /**
      * Mark analysis as failed and log the error
      */
-    public function markAsFailed(ResumeAnalysis $analysis, string $errorMessage, int $attemptNumber): bool;
+    public function markAsFailed(ResumeAnalysis $analysis, string $errorMessage, int $attemptNumber): true;
 
     /**
      * Reset analysis state for a retry

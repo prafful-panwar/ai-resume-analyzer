@@ -15,7 +15,7 @@ parameters:
         - '#PHPDoc tag @var with type .* is not subtype of native type .*#'
         -
             message: '#Call to an undefined method PHPUnit\\Framework\\TestCase::.*#'
-            path: tests/*
+            path: tests/**
 
     # hideUndefinedMethods: true
     # checkMissingIterableValueType: false

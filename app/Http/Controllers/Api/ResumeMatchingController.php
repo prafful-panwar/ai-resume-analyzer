@@ -10,9 +10,9 @@ use App\Models\JobDescription;
 use App\Models\User;
 use App\Repositories\Contracts\JobDescriptionRepositoryInterface;
 use App\Services\ResumeAnalysisService;
-use Exception;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
+use Throwable;
 
 class ResumeMatchingController extends Controller
 {
@@ -39,8 +39,7 @@ class ResumeMatchingController extends Controller
             $jobDescription = $this->jobDescriptionRepository->findById($jobDescriptionId);
 
             if (! $jobDescription) {
-                // Should never happen due to FormRequest validation, but satisfies static analysis
-                throw new Exception('Job description not found.');
+                return response()->json(['success' => false, 'error' => 'Job description not found.'], 404);
             }
 
             $dto = AnalyzeResumeData::fromArray($request->validated());
@@ -53,11 +52,10 @@ class ResumeMatchingController extends Controller
 
             return ResumeAnalysisResource::make($analysis);
 
-        } catch (Exception $e) {
+        } catch (Throwable) {
             return response()->json([
                 'success' => false,
-                'error' => 'Failed to analyze resume',
-                'message' => $e->getMessage(),
+                'error' => 'Failed to analyze resume.',
             ], 500);
         }
     }

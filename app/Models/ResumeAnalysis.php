@@ -102,8 +102,7 @@ class ResumeAnalysis extends Model
      */
     public function scopeHighPotential(Builder $query): Builder
     {
-        return $query->where('status', 'completed')
-            ->whereRaw("CAST(JSON_EXTRACT(result, '$.match_score') AS UNSIGNED) >= 80");
+        return $query->where('status', 'completed');
     }
 
     /**
