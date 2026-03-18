@@ -8,6 +8,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Messages\SlackMessage;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Number;
+use Illuminate\Support\Str;
 
 uses(RefreshDatabase::class);
 
@@ -76,11 +78,18 @@ test('toBroadcast returns a BroadcastMessage with the correct payload', function
         ->and($broadcast->data['message'])->toContain('Software Engineer');
 });
 
-test('toSlack returns a SlackMessage instance', function (): void {
+test('toSlack returns a SlackMessage instance with formatted fields', function (): void {
     [$user, $analysis, $notification] = setupTestData();
     $slack = $notification->toSlack($user);
 
     expect($slack)->toBeInstanceOf(SlackMessage::class);
+
+    $attachment = $slack->attachments[0];
+    expect($attachment->fields)->toBe([
+        'Job Role' => 'Software Engineer',
+        'Status' => Str::ucfirst($analysis->status),
+        'Match Score' => Number::percentage(85, maxPrecision: 0),
+    ]);
 });
 
 test('failed analysis payload contains error and omits match score', function (): void {

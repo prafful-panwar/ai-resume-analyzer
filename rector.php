@@ -3,9 +3,8 @@
 declare(strict_types=1);
 
 use Rector\Config\RectorConfig;
-use Rector\PHPUnit\Set\PHPUnitSetList;
 use Rector\Set\ValueObject\SetList;
-use RectorLaravel\Set\LaravelSetList;
+use RectorLaravel\Set\LaravelLevelSetList;
 
 return static function (RectorConfig $rectorConfig): void {
     $rectorConfig->paths([
@@ -25,8 +24,6 @@ return static function (RectorConfig $rectorConfig): void {
         SetList::EARLY_RETURN,
         SetList::TYPE_DECLARATION,
         SetList::PHP_84,
-        PHPUnitSetList::PHPUNIT_100, // Converts test_methods to #[Test]
-        PHPUnitSetList::ANNOTATIONS_TO_ATTRIBUTES,
-        LaravelSetList::LARAVEL_110,
+        LaravelLevelSetList::UP_TO_LARAVEL_120,
     ]);
 };

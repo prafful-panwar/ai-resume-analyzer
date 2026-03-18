@@ -76,7 +76,7 @@ class ResumeAnalysisController extends Controller
     /**
      * Retry a failed analysis.
      */
-    #[Authorize('view', 'resumeAnalysis')]
+    #[Authorize('update', 'resumeAnalysis')]
     public function retry(Request $request, ResumeAnalysis $resumeAnalysis): RedirectResponse
     {
         try {

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Database\Factories\ResumeAnalysisFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -80,7 +81,8 @@ class ResumeAnalysis extends Model
      * @param  Builder<ResumeAnalysis>  $query
      * @return Builder<ResumeAnalysis>
      */
-    public function scopeHighPotential(Builder $query): Builder
+    #[Scope]
+    protected function highPotential(Builder $query): Builder
     {
         return $query->where('status', 'completed');
     }
@@ -92,7 +94,8 @@ class ResumeAnalysis extends Model
      * @param  string|array<int, string>  ...$statuses
      * @return Builder<ResumeAnalysis>
      */
-    public function scopeByStatus(Builder $query, string|array ...$statuses): Builder
+    #[Scope]
+    protected function byStatus(Builder $query, string|array ...$statuses): Builder
     {
         return $query->whereIn('status', Arr::flatten($statuses));
     }
@@ -103,7 +106,8 @@ class ResumeAnalysis extends Model
      * @param  Builder<ResumeAnalysis>  $query
      * @return Builder<ResumeAnalysis>
      */
-    public function scopeForUser(Builder $query, int|string|null $userId): Builder
+    #[Scope]
+    protected function forUser(Builder $query, int|string|null $userId): Builder
     {
         return $query->where('user_id', $userId);
     }
