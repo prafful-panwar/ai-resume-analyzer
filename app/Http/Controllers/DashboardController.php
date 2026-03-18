@@ -23,9 +23,7 @@ class DashboardController extends Controller
     public function index(Request $request): Response
     {
         $user = $request->user();
-        if (! $user instanceof User) {
-            abort(401);
-        }
+        abort_unless($user instanceof User, 401);
 
         return Inertia::render('Dashboard', [
             'stats' => $this->dashboardService->getHiringStats($user),

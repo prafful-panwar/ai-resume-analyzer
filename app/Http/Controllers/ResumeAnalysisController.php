@@ -33,9 +33,7 @@ class ResumeAnalysisController extends Controller
     public function index(Request $request): Response
     {
         $user = $request->user();
-        if (! $user instanceof User) {
-            abort(401);
-        }
+        abort_unless($user instanceof User, 401);
 
         $analyses = $this->resumeAnalysisRepository->getForUser($user);
 
@@ -82,7 +80,7 @@ class ResumeAnalysisController extends Controller
         try {
             $this->analysisService->retryAnalysis($resumeAnalysis, $request->boolean('force'));
 
-            return redirect()->route('resume-analyses.show', $resumeAnalysis)
+            return to_route('resume-analyses.show', $resumeAnalysis)
                 ->with('success', 'Analysis queued for retry!');
         } catch (Exception $e) {
             return back()->with('error', $e->getMessage());

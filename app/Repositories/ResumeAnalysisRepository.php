@@ -18,8 +18,7 @@ class ResumeAnalysisRepository implements ResumeAnalysisRepositoryInterface
     public function getForUser(User $user): Collection
     {
         return $user->resumeAnalyses()
-            ->with('jobDescription')
-            ->orderBy('created_at', 'desc')
+            ->with('jobDescription')->latest()
             ->get();
     }
 
@@ -84,7 +83,7 @@ class ResumeAnalysisRepository implements ResumeAnalysisRepositoryInterface
      */
     public function findById(int $id): ?ResumeAnalysis
     {
-        return ResumeAnalysis::find($id);
+        return ResumeAnalysis::query()->find($id);
     }
 
     /**
