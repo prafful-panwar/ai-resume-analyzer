@@ -74,9 +74,7 @@ class ResumeAnalysisService
      */
     public function retryAnalysis(ResumeAnalysis $analysis, bool $force = false): ResumeAnalysis
     {
-        if ($analysis->status !== 'failed' && ! $force) {
-            throw new Exception('Only failed analyses can be retried.');
-        }
+        throw_if($analysis->status !== 'failed' && ! $force, Exception::class, 'Only failed analyses can be retried.');
 
         // Log the current state before retrying
         $this->resumeAnalysisRepository->logRetry($analysis);
@@ -89,9 +87,7 @@ class ResumeAnalysisService
 
         $fresh = $this->resumeAnalysisRepository->findById($analysis->id);
 
-        if (! $fresh instanceof ResumeAnalysis) {
-            throw new Exception('Failed to reload analysis record.');
-        }
+        throw_unless($fresh instanceof ResumeAnalysis, Exception::class, 'Failed to reload analysis record.');
 
         return $fresh;
     }
@@ -105,9 +101,7 @@ class ResumeAnalysisService
     {
         $filePath = Storage::path($analysis->resume_file_path);
 
-        if (! file_exists($filePath)) {
-            throw new Exception('Resume file not found');
-        }
+        throw_unless(file_exists($filePath), Exception::class, 'Resume file not found');
 
         return $filePath;
     }
@@ -129,9 +123,7 @@ class ResumeAnalysisService
     {
         $path = $file->store('resumes', 'local');
 
-        if ($path === false) {
-            throw new Exception('Failed to store resume file.');
-        }
+        throw_if($path === false, Exception::class, 'Failed to store resume file.');
 
         return $path;
     }
@@ -141,7 +133,7 @@ class ResumeAnalysisService
      */
     private function dispatchAnalysisJob(ResumeAnalysis $analysis): void
     {
-        AnalyzeResumeJob::dispatch($analysis);
+        dispatch(new AnalyzeResumeJob($analysis));
     }
 
     /**
@@ -160,7 +152,7 @@ class ResumeAnalysisService
 
         try {
             // Parse PDF
-            $parser = app(Parser::class);
+            $parser = resolve(Parser::class);
             $filePath = Storage::path($analysis->resume_file_path);
             $pdf = $parser->parseFile($filePath);
             $resumeText = $pdf->getText();

@@ -22,9 +22,7 @@ class PasswordController extends Controller
         ]);
 
         $user = $request->user();
-        if (! $user instanceof User) {
-            abort(401);
-        }
+        abort_unless($user instanceof User, 401);
 
         $user->update([
             'password' => Hash::make($validated['password']),

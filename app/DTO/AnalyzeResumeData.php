@@ -19,9 +19,7 @@ class AnalyzeResumeData
     {
         $jobDescriptionId = (int) ($data['job_description_id'] ?? 0);
 
-        if ($jobDescriptionId <= 0) {
-            throw new ValueError('job_description_id must be a positive integer.');
-        }
+        throw_if($jobDescriptionId <= 0, ValueError::class, 'job_description_id must be a positive integer.');
 
         return new self(
             job_description_id: $jobDescriptionId,

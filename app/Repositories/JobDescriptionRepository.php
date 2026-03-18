@@ -17,8 +17,7 @@ class JobDescriptionRepository implements JobDescriptionRepositoryInterface
      */
     public function getForUser(User $user): Collection
     {
-        return $user->jobDescriptions()
-            ->orderBy('created_at', 'desc')
+        return $user->jobDescriptions()->latest()
             ->get();
     }
 
@@ -40,7 +39,7 @@ class JobDescriptionRepository implements JobDescriptionRepositoryInterface
      */
     public function findById(int $id): ?JobDescription
     {
-        return JobDescription::find($id);
+        return JobDescription::query()->find($id);
     }
 
     /**

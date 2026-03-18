@@ -33,9 +33,7 @@ class ResumeMatchingController extends Controller
     public function index(): Response
     {
         $user = auth()->user();
-        if (! $user instanceof User) {
-            abort(401);
-        }
+        abort_unless($user instanceof User, 401);
 
         $jobDescriptions = $this->jobDescriptionRepository->getRecentForUser(
             $user,
@@ -62,10 +60,7 @@ class ResumeMatchingController extends Controller
             /** @var JobDescription|null $jobDescription */
             $jobDescription = $this->jobDescriptionRepository->findById($jobDescriptionId);
 
-            if (! $jobDescription) {
-                // Should never happen due to FormRequest validation, but satisfies static analysis
-                abort(404, 'Job description not found.');
-            }
+            abort_unless($jobDescription !== null, 404, 'Job description not found.');
 
             $this->authorize('view', $jobDescription);
 
@@ -78,7 +73,7 @@ class ResumeMatchingController extends Controller
                 $dto
             );
 
-            return redirect()->route('resume-analyses.show', $analysis)
+            return to_route('resume-analyses.show', $analysis)
                 ->with('success', 'Resume analysis queued! You will be notified when it completes.');
 
         } catch (Exception $e) {

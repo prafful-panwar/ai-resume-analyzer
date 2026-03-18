@@ -75,7 +75,7 @@ class ResumeAnalysisServiceTest extends TestCase
         $file = UploadedFile::fake()->create('resume.pdf', 100);
         $path = $file->store('resumes', 'local');
 
-        $analysis = ResumeAnalysis::create([
+        $analysis = ResumeAnalysis::query()->create([
             'user_id' => $user->id,
             'job_description_id' => $jobDescription->id,
             'resume_file_path' => $path,
@@ -83,7 +83,7 @@ class ResumeAnalysisServiceTest extends TestCase
             'status' => 'pending',
         ]);
 
-        $service = app(ResumeAnalysisService::class);
+        $service = resolve(ResumeAnalysisService::class);
         $result = $service->performAnalysis($analysis);
 
         $this->assertEquals('completed', $result->status);

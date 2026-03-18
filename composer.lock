@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "9ec22212fa4f696996a147d6788ece12",
+    "content-hash": "747c88a940337d9f79be45ecf1455840",
     "packages": [
         {
             "name": "brick/math",
@@ -1305,16 +1305,16 @@
         },
         {
             "name": "laravel/ai",
-            "version": "v0.3.1",
+            "version": "v0.3.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/laravel/ai.git",
-                "reference": "ab91fe5c366288fe0b90d0eb5e4ba1d57ead5363"
+                "reference": "dfdf853427eb9fb8d763f8d9e2ed62cfcc03fb9c"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/laravel/ai/zipball/ab91fe5c366288fe0b90d0eb5e4ba1d57ead5363",
-                "reference": "ab91fe5c366288fe0b90d0eb5e4ba1d57ead5363",
+                "url": "https://api.github.com/repos/laravel/ai/zipball/dfdf853427eb9fb8d763f8d9e2ed62cfcc03fb9c",
+                "reference": "dfdf853427eb9fb8d763f8d9e2ed62cfcc03fb9c",
                 "shasum": ""
             },
             "require": {
@@ -1367,20 +1367,20 @@
                 "issues": "https://github.com/laravel/ai/issues",
                 "source": "https://github.com/laravel/ai"
             },
-            "time": "2026-03-16T17:52:59+00:00"
+            "time": "2026-03-18T14:44:36+00:00"
         },
         {
             "name": "laravel/framework",
-            "version": "v13.0.0",
+            "version": "v13.1.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/laravel/framework.git",
-                "reference": "3e33f431a05365d008742ff8001b92641086d5f8"
+                "reference": "32c5fa8b3d0150f97f1b98f5690eba34b73b3d75"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/laravel/framework/zipball/3e33f431a05365d008742ff8001b92641086d5f8",
-                "reference": "3e33f431a05365d008742ff8001b92641086d5f8",
+                "url": "https://api.github.com/repos/laravel/framework/zipball/32c5fa8b3d0150f97f1b98f5690eba34b73b3d75",
+                "reference": "32c5fa8b3d0150f97f1b98f5690eba34b73b3d75",
                 "shasum": ""
             },
             "require": {
@@ -1588,20 +1588,20 @@
                 "issues": "https://github.com/laravel/framework/issues",
                 "source": "https://github.com/laravel/framework"
             },
-            "time": "2026-03-17T14:42:13+00:00"
+            "time": "2026-03-18T14:33:42+00:00"
         },
         {
             "name": "laravel/horizon",
-            "version": "v5.45.3",
+            "version": "v5.45.4",
             "source": {
                 "type": "git",
                 "url": "https://github.com/laravel/horizon.git",
-                "reference": "80c4de73c56227c625e5a3c6bfaddff760ab0962"
+                "reference": "b2b32e3f6013081e0176307e9081cd085f0ad4d6"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/laravel/horizon/zipball/80c4de73c56227c625e5a3c6bfaddff760ab0962",
-                "reference": "80c4de73c56227c625e5a3c6bfaddff760ab0962",
+                "url": "https://api.github.com/repos/laravel/horizon/zipball/b2b32e3f6013081e0176307e9081cd085f0ad4d6",
+                "reference": "b2b32e3f6013081e0176307e9081cd085f0ad4d6",
                 "shasum": ""
             },
             "require": {
@@ -1666,9 +1666,9 @@
             ],
             "support": {
                 "issues": "https://github.com/laravel/horizon/issues",
-                "source": "https://github.com/laravel/horizon/tree/v5.45.3"
+                "source": "https://github.com/laravel/horizon/tree/v5.45.4"
             },
-            "time": "2026-03-11T14:28:04+00:00"
+            "time": "2026-03-18T14:14:59+00:00"
         },
         {
             "name": "laravel/nightwatch",
@@ -8857,6 +8857,42 @@
             "time": "2026-02-07T07:09:04+00:00"
         },
         {
+            "name": "driftingly/rector-laravel",
+            "version": "2.1.12",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/driftingly/rector-laravel.git",
+                "reference": "2a2175eefabca6d15c247d55de17c75dc2f787a9"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/driftingly/rector-laravel/zipball/2a2175eefabca6d15c247d55de17c75dc2f787a9",
+                "reference": "2a2175eefabca6d15c247d55de17c75dc2f787a9",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^7.4 || ^8.0",
+                "rector/rector": "^2.2.7",
+                "webmozart/assert": "^1.11"
+            },
+            "type": "rector-extension",
+            "autoload": {
+                "psr-4": {
+                    "RectorLaravel\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "description": "Rector upgrades rules for Laravel Framework",
+            "support": {
+                "issues": "https://github.com/driftingly/rector-laravel/issues",
+                "source": "https://github.com/driftingly/rector-laravel/tree/2.1.12"
+            },
+            "time": "2026-03-06T19:59:21+00:00"
+        },
+        {
             "name": "fakerphp/faker",
             "version": "v1.24.1",
             "source": {
@@ -12058,43 +12094,6 @@
                 }
             ],
             "time": "2026-03-16T09:43:55+00:00"
-        },
-        {
-            "name": "rector/rector-laravel",
-            "version": "2.1.12",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/driftingly/rector-laravel.git",
-                "reference": "2a2175eefabca6d15c247d55de17c75dc2f787a9"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/driftingly/rector-laravel/zipball/2a2175eefabca6d15c247d55de17c75dc2f787a9",
-                "reference": "2a2175eefabca6d15c247d55de17c75dc2f787a9",
-                "shasum": ""
-            },
-            "require": {
-                "php": "^7.4 || ^8.0",
-                "rector/rector": "^2.2.7",
-                "webmozart/assert": "^1.11"
-            },
-            "type": "rector-extension",
-            "autoload": {
-                "psr-4": {
-                    "RectorLaravel\\": "src"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "description": "Rector upgrades rules for Laravel Framework",
-            "support": {
-                "issues": "https://github.com/driftingly/rector-laravel/issues",
-                "source": "https://github.com/driftingly/rector-laravel/tree/2.1.12"
-            },
-            "abandoned": "driftingly/rector-laravel",
-            "time": "2026-03-06T19:59:21+00:00"
         },
         {
             "name": "revolt/event-loop",
