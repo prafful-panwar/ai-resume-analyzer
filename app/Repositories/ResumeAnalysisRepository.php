@@ -18,8 +18,7 @@ class ResumeAnalysisRepository implements ResumeAnalysisRepositoryInterface
     public function getForUser(User $user): Collection
     {
         return $user->resumeAnalyses()
-            ->with('jobDescription')
-            ->orderBy('created_at', 'desc')
+            ->with('jobDescription')->latest()
             ->get();
     }
 
@@ -30,7 +29,7 @@ class ResumeAnalysisRepository implements ResumeAnalysisRepositoryInterface
      */
     public function getRecentForUser(User $user, int $limit = 5): Collection
     {
-        return ResumeAnalysis::forUser($user->id)
+        return ResumeAnalysis::query()->forUser($user->id)
             ->with('jobDescription')
             ->latest()
             ->limit($limit)
@@ -42,7 +41,7 @@ class ResumeAnalysisRepository implements ResumeAnalysisRepositoryInterface
      */
     public function getStatisticsForUser(User $user): object
     {
-        $analyses = ResumeAnalysis::forUser($user->id)->get(['status', 'result', 'total_tokens']);
+        $analyses = ResumeAnalysis::query()->forUser($user->id)->get(['status', 'result', 'total_tokens']);
 
         $totalTokens = $analyses->sum('total_tokens');
 
@@ -71,7 +70,7 @@ class ResumeAnalysisRepository implements ResumeAnalysisRepositoryInterface
      */
     public function getTopTalentForUser(User $user, int $limit = 5): Collection
     {
-        return ResumeAnalysis::forUser($user->id)
+        return ResumeAnalysis::query()->forUser($user->id)
             ->with('jobDescription')
             ->byStatus('completed')
             ->get()
@@ -85,7 +84,7 @@ class ResumeAnalysisRepository implements ResumeAnalysisRepositoryInterface
      */
     public function findById(int $id): ?ResumeAnalysis
     {
-        return ResumeAnalysis::find($id);
+        return ResumeAnalysis::query()->find($id);
     }
 
     /**

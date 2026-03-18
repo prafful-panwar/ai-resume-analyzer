@@ -31,9 +31,7 @@ class ProfileController extends Controller
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
         $user = $request->user();
-        if (! $user instanceof User) {
-            abort(401);
-        }
+        abort_unless($user instanceof User, 401);
 
         $user->fill($request->validated());
 
@@ -43,7 +41,7 @@ class ProfileController extends Controller
 
         $user->save();
 
-        return Redirect::route('profile.edit');
+        return to_route('profile.edit');
     }
 
     /**
@@ -56,9 +54,7 @@ class ProfileController extends Controller
         ]);
 
         $user = $request->user();
-        if (! $user instanceof User) {
-            abort(401);
-        }
+        abort_unless($user instanceof User, 401);
 
         Auth::logout();
 

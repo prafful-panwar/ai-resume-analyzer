@@ -29,9 +29,7 @@ class JobDescriptionController extends Controller
     public function index(Request $request): Response
     {
         $user = $request->user();
-        if (! $user instanceof User) {
-            abort(401);
-        }
+        abort_unless($user instanceof User, 401);
 
         $jobDescriptions = $this->jobDescriptionRepository->getForUser($user);
 
@@ -59,7 +57,7 @@ class JobDescriptionController extends Controller
         $dto = JobDescriptionData::fromArray($request->validated());
         $this->jobDescriptionService->createJobDescription($user, $dto);
 
-        return redirect()->route('job-descriptions.index')
+        return to_route('job-descriptions.index')
             ->with('success', 'Job description created successfully');
     }
 
@@ -86,11 +84,11 @@ class JobDescriptionController extends Controller
         $updated = $this->jobDescriptionService->updateJobDescription($jobDescription, $dto);
 
         if (! $updated) {
-            return redirect()->back()
+            return back()
                 ->with('error', 'Failed to update job description. Please try again.');
         }
 
-        return redirect()->route('job-descriptions.index')
+        return to_route('job-descriptions.index')
             ->with('success', 'Job description updated successfully.');
     }
 
@@ -104,11 +102,11 @@ class JobDescriptionController extends Controller
         $deleted = $this->jobDescriptionService->deleteJobDescription($jobDescription);
 
         if (! $deleted) {
-            return redirect()->back()
+            return back()
                 ->with('error', 'Failed to delete job description. Please try again.');
         }
 
-        return redirect()->route('job-descriptions.index')
+        return to_route('job-descriptions.index')
             ->with('success', 'Job description deleted successfully.');
     }
 }

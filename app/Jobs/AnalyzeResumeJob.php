@@ -117,7 +117,7 @@ class AnalyzeResumeJob implements ShouldBeUnique, ShouldQueue
         ];
 
         try {
-            app(ResumeAnalysisRepositoryInterface::class)->markAsFailed(
+            resolve(ResumeAnalysisRepositoryInterface::class)->markAsFailed(
                 $this->resumeAnalysis,
                 $exception->getMessage(),
                 $this->attempts()
