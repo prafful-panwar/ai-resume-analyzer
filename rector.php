@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Rector\Config\RectorConfig;
+use Rector\PHPUnit\Set\PHPUnitSetList;
 use Rector\Set\ValueObject\SetList;
 use RectorLaravel\Set\LaravelSetList;
 
@@ -23,6 +24,9 @@ return static function (RectorConfig $rectorConfig): void {
         SetList::DEAD_CODE,
         SetList::EARLY_RETURN,
         SetList::TYPE_DECLARATION,
+        SetList::PHP_84,
+        PHPUnitSetList::PHPUNIT_100, // Converts test_methods to #[Test]
+        PHPUnitSetList::ANNOTATIONS_TO_ATTRIBUTES,
         LaravelSetList::LARAVEL_110,
     ]);
 };

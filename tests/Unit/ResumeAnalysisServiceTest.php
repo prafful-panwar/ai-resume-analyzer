@@ -14,6 +14,8 @@ use Laravel\Ai\Responses\Data\Meta;
 use Laravel\Ai\Responses\Data\Usage;
 use Laravel\Ai\Responses\StructuredAgentResponse;
 use Mockery;
+use Mockery\Expectation;
+use Mockery\MockInterface;
 use Smalot\PdfParser\Document;
 use Smalot\PdfParser\Parser;
 use Tests\TestCase;
@@ -55,12 +57,13 @@ class ResumeAnalysisServiceTest extends TestCase
         $realResponse = new StructuredAgentResponse('123', $expectedData, 'json text', $usage, $meta);
 
         // Mock the Agent class
+        /** @var MockInterface $agentMock */
         $agentMock = Mockery::mock(ResumeAnalystAgent::class);
 
         // Expect prompt to be called.
-        /** @phpstan-ignore-next-line */
-        $agentMock->shouldReceive('prompt')
-            ->withAnyArgs()
+        /** @var Expectation $expectation */
+        $expectation = $agentMock->shouldReceive('prompt');
+        $expectation->with('Analyze this resume.')
             ->andReturn($realResponse);
 
         // Bind the mock to the container so app()->makeWith(...) returns it

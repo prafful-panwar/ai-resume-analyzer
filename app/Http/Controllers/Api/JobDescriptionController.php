@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Attributes\Controllers\Authorize;
 
 class JobDescriptionController extends Controller
 {
@@ -54,10 +55,9 @@ class JobDescriptionController extends Controller
     /**
      * Display the specified job description.
      */
+    #[Authorize('view', 'job_description')]
     public function show(JobDescription $jobDescription): JsonResponse
     {
-        $this->authorize('view', $jobDescription);
-
         return response()->json([
             'success' => true,
             'data' => $jobDescription,
@@ -67,10 +67,9 @@ class JobDescriptionController extends Controller
     /**
      * Update the specified job description.
      */
+    #[Authorize('update', 'job_description')]
     public function update(StoreJobDescriptionRequest $request, JobDescription $jobDescription): JsonResponse
     {
-        $this->authorize('update', $jobDescription);
-
         $jobDescription->update($request->validated());
 
         return response()->json([
@@ -83,10 +82,9 @@ class JobDescriptionController extends Controller
     /**
      * Remove the specified job description.
      */
+    #[Authorize('delete', 'job_description')]
     public function destroy(JobDescription $jobDescription): JsonResponse
     {
-        $this->authorize('delete', $jobDescription);
-
         $jobDescription->delete();
 
         return response()->json([

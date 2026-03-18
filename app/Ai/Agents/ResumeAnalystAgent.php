@@ -17,8 +17,8 @@ class ResumeAnalystAgent implements Agent, Conversational, HasStructuredOutput
     use Promptable;
 
     public function __construct(
-        protected JobDescription $jobDescription,
-        protected string $resumeText
+        public private(set) JobDescription $jobDescription,
+        public private(set) string $resumeText
     ) {}
 
     /**
@@ -26,9 +26,12 @@ class ResumeAnalystAgent implements Agent, Conversational, HasStructuredOutput
      */
     public function instructions(): Stringable|string
     {
-        $requirements = is_array($this->jobDescription->requirements) && $this->jobDescription->requirements !== []
-            ? implode(', ', $this->jobDescription->requirements)
-            : 'Not specified';
+        /** @var array<int, string> $requirementsArray */
+        $requirementsArray = (array) $this->jobDescription->requirements;
+
+        $requirements = empty($requirementsArray)
+            ? 'Not specified'
+            : implode(', ', $requirementsArray);
 
         return "Analyze the resume against the job description and provide a matching analysis in JSON format.
 CRITICAL: YOUR ENTIRE RESPONSE MUST BE A SINGLE VALID JSON OBJECT. DO NOT INCLUDE ANY EXPLANATION, CONVERSATIONAL TEXT, OR MARKDOWN BACKTICKS.

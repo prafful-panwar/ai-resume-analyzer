@@ -8,8 +8,8 @@ use ValueError;
 class AnalyzeResumeData
 {
     public function __construct(
-        public readonly int $job_description_id,
-        public readonly UploadedFile $resume,
+        public private(set) int $job_description_id,
+        public private(set) UploadedFile $resume,
     ) {}
 
     /**

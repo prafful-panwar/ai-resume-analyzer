@@ -10,6 +10,7 @@ use Exception;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Attributes\Controllers\Authorize;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -46,10 +47,9 @@ class ResumeAnalysisController extends Controller
     /**
      * Display the specified resume analysis.
      */
+    #[Authorize('view', 'resumeAnalysis')]
     public function show(ResumeAnalysis $resumeAnalysis): Response
     {
-        $this->authorize('view', $resumeAnalysis);
-
         $resumeAnalysis->load(['jobDescription', 'logs']);
 
         return Inertia::render('ResumeAnalyses/Show', [
@@ -60,10 +60,9 @@ class ResumeAnalysisController extends Controller
     /**
      * Download the resume file.
      */
+    #[Authorize('view', 'resumeAnalysis')]
     public function download(ResumeAnalysis $resumeAnalysis): BinaryFileResponse
     {
-        $this->authorize('view', $resumeAnalysis);
-
         try {
             $filePath = $this->analysisService->getResumeFilePath($resumeAnalysis);
             $downloadName = $this->analysisService->getDownloadFilename($resumeAnalysis);
@@ -77,10 +76,9 @@ class ResumeAnalysisController extends Controller
     /**
      * Retry a failed analysis.
      */
+    #[Authorize('view', 'resumeAnalysis')]
     public function retry(Request $request, ResumeAnalysis $resumeAnalysis): RedirectResponse
     {
-        $this->authorize('view', $resumeAnalysis);
-
         try {
             $this->analysisService->retryAnalysis($resumeAnalysis, $request->boolean('force'));
 

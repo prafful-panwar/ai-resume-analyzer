@@ -11,6 +11,7 @@ use App\Services\JobDescriptionService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Attributes\Controllers\Authorize;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -66,10 +67,9 @@ class JobDescriptionController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
+    #[Authorize('update', 'job_description')]
     public function edit(JobDescription $jobDescription): Response
     {
-        $this->authorize('update', $jobDescription);
-
         return Inertia::render('JobDescriptions/Form', [
             'jobDescription' => $jobDescription,
         ]);
@@ -78,10 +78,9 @@ class JobDescriptionController extends Controller
     /**
      * Update the specified resource in storage.
      */
+    #[Authorize('update', 'job_description')]
     public function update(StoreJobDescriptionRequest $request, JobDescription $jobDescription): RedirectResponse
     {
-        $this->authorize('update', $jobDescription);
-
         $dto = JobDescriptionData::fromArray($request->validated());
         $updated = $this->jobDescriptionService->updateJobDescription($jobDescription, $dto);
 
@@ -97,10 +96,9 @@ class JobDescriptionController extends Controller
     /**
      * Remove the specified resource from storage.
      */
+    #[Authorize('delete', 'job_description')]
     public function destroy(JobDescription $jobDescription): RedirectResponse
     {
-        $this->authorize('delete', $jobDescription);
-
         $deleted = $this->jobDescriptionService->deleteJobDescription($jobDescription);
 
         if (! $deleted) {
