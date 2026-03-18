@@ -9,12 +9,12 @@ class JobDescriptionData
      * @param  array<string>|null  $requirements
      */
     public function __construct(
-        public readonly string $job_role,
-        public readonly int $experience_min,
-        public readonly int $experience_max,
-        public readonly string $description,
-        public readonly ?array $requirements = null,
-        public readonly array $data = []
+        public private(set) string $job_role,
+        public private(set) int $experience_min,
+        public private(set) int $experience_max,
+        public private(set) string $description,
+        public private(set) ?array $requirements = null,
+        public private(set) array $data = []
     ) {}
 
     /**

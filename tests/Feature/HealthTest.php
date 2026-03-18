@@ -1,7 +1,9 @@
 <?php
 
+use Tests\TestCase;
+
 test('application returns a successful response', function (): void {
-    /** @var Tests\TestCase $this */
+    /** @var TestCase $this */
     $response = $this->get('/');
 
     $response->assertStatus(200);

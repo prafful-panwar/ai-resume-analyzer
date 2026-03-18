@@ -10,7 +10,11 @@ use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Messages\SlackAttachment;
 use Illuminate\Notifications\Messages\SlackMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Queue\Attributes\DeleteWhenMissingModels;
+use Illuminate\Support\Number;
+use Illuminate\Support\Str;
 
+#[DeleteWhenMissingModels]
 class ResumeAnalysisCompleted extends Notification implements ShouldBroadcast, ShouldQueue
 {
     use Queueable;
@@ -66,11 +70,11 @@ class ResumeAnalysisCompleted extends Notification implements ShouldBroadcast, S
             ->attachment(function (SlackAttachment $attachment) use ($jobRole, $isCompleted, $matchScore): void {
                 $fields = [
                     'Job Role' => $jobRole,
-                    'Status' => ucfirst($this->resumeAnalysis->status),
+                    'Status' => Str::ucfirst($this->resumeAnalysis->status),
                 ];
 
                 if ($matchScore !== null) {
-                    $fields['Match Score'] = "{$matchScore}%";
+                    $fields['Match Score'] = Number::percentage($matchScore, maxPrecision: 0);
                 }
 
                 if (! $isCompleted) {

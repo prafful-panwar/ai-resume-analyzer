@@ -46,11 +46,10 @@ class ResumeAnalysisRepository implements ResumeAnalysisRepositoryInterface
 
         $totalTokens = $analyses->sum('total_tokens');
 
-        $highPotentials = $analyses->filter(
-            fn (ResumeAnalysis $analysis): bool => $analysis->status === 'completed'
-                && isset($analysis->result['match_score'])
-                && (int) $analysis->result['match_score'] >= 80
-        )->count();
+        $highPotentials = $analyses->filter(function (ResumeAnalysis $analysis): bool {
+            return $analysis->status === 'completed'
+                && (int) data_get($analysis->result, 'match_score', 0) >= 80;
+        })->count();
 
         $pendingCount = $analyses->filter(
             fn (ResumeAnalysis $analysis): bool => in_array($analysis->status, ['pending', 'processing'], true)
@@ -75,7 +74,7 @@ class ResumeAnalysisRepository implements ResumeAnalysisRepositoryInterface
             ->with('jobDescription')
             ->byStatus('completed')
             ->get()
-            ->sortByDesc(fn (ResumeAnalysis $analysis): int => (int) ($analysis->result['match_score'] ?? 0))
+            ->sortByDesc(fn (ResumeAnalysis $analysis): int => (int) data_get($analysis->result, 'match_score', 0))
             ->take($limit)
             ->values();
     }

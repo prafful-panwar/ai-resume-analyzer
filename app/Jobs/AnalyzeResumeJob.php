@@ -11,34 +11,25 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\Attributes\Backoff;
+use Illuminate\Queue\Attributes\DeleteWhenMissingModels;
+use Illuminate\Queue\Attributes\Timeout;
+use Illuminate\Queue\Attributes\Tries;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\Middleware\RateLimited;
 use Illuminate\Queue\SerializesModels;
 use Log;
 use Throwable;
 
+#[DeleteWhenMissingModels]
+#[Tries(3)]
+#[Timeout(300)]
+#[Backoff([60, 120, 300])]
 class AnalyzeResumeJob implements ShouldBeUnique, ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public const string QUEUE = 'resume-analysis';
-
-    /**
-     * The number of times the job may be attempted.
-     */
-    public int $tries = 3;
-
-    /**
-     * The number of seconds the job can run before timing out.
-     */
-    public int $timeout = 300; // 5 minutes
-
-    /**
-     * The number of seconds to wait before retrying the job.
-     *
-     * @var array<int, int>
-     */
-    public array $backoff = [60, 120, 300]; // 1 min, 2 min, 5 min
 
     /**
      * Determine the time at which the job should timeout.
@@ -128,7 +119,6 @@ class AnalyzeResumeJob implements ShouldBeUnique, ShouldQueue
 
         if ($isPermanent) {
             $logData['attempts'] = $this->attempts();
-            $logData['max_tries'] = $this->tries;
             $logData['trace'] = $exception->getTraceAsString();
             Log::error('Resume analysis job failed permanently', $logData);
         } else {

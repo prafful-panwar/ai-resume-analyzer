@@ -288,7 +288,7 @@ class ResumeAnalysisService
 
         // Sanitize extension (only allow common document formats)
         $allowedExtensions = collect(['pdf', 'doc', 'docx', 'txt']);
-        $extension = strtolower($extension);
+        $extension = Str::lower($extension);
         if ($allowedExtensions->doesntContain($extension)) {
             $extension = 'pdf'; // Default to pdf
         }
