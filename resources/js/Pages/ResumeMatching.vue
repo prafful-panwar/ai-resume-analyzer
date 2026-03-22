@@ -363,22 +363,22 @@ const getRecommendationText = (recommendation) => {
                                     </p>
                                 </div>
 
-                                <!-- Matched Skills -->
+                                <!-- Matched Primary Skills -->
                                 <div
                                     v-if="
-                                        result.matched_skills &&
-                                        result.matched_skills.length > 0
+                                        result.matched_primary_skills &&
+                                        result.matched_primary_skills.length > 0
                                     "
                                     class="mb-6"
                                 >
                                     <h4
                                         class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2"
                                     >
-                                        ✓ Matched Skills
+                                        ✓ Matched Primary Skills (Core)
                                     </h4>
                                     <div class="flex flex-wrap gap-2">
                                         <span
-                                            v-for="skill in result.matched_skills"
+                                            v-for="skill in result.matched_primary_skills"
                                             :key="skill"
                                             class="inline-flex rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-800 dark:bg-green-900/50 dark:text-green-200"
                                         >
@@ -387,24 +387,120 @@ const getRecommendationText = (recommendation) => {
                                     </div>
                                 </div>
 
-                                <!-- Missing Skills -->
+                                <!-- Missing Primary Skills -->
                                 <div
                                     v-if="
-                                        result.missing_skills &&
-                                        result.missing_skills.length > 0
+                                        result.missing_primary_skills &&
+                                        result.missing_primary_skills.length > 0
                                     "
                                     class="mb-6"
                                 >
                                     <h4
                                         class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2"
                                     >
-                                        ✗ Missing Skills
+                                        ✗ Missing Primary Skills (Core)
                                     </h4>
                                     <div class="flex flex-wrap gap-2">
                                         <span
-                                            v-for="skill in result.missing_skills"
+                                            v-for="skill in result.missing_primary_skills"
                                             :key="skill"
                                             class="inline-flex rounded-full bg-red-100 px-3 py-1 text-sm font-medium text-red-800 dark:bg-red-900/50 dark:text-red-200"
+                                        >
+                                            {{ skill }}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <!-- Matched Secondary Skills -->
+                                <div
+                                    v-if="
+                                        result.matched_secondary_skills &&
+                                        result.matched_secondary_skills.length > 0
+                                    "
+                                    class="mb-6"
+                                >
+                                    <h4
+                                        class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2"
+                                    >
+                                        ✓ Matched Secondary Skills
+                                    </h4>
+                                    <div class="flex flex-wrap gap-2">
+                                        <span
+                                            v-for="skill in result.matched_secondary_skills"
+                                            :key="skill"
+                                            class="inline-flex rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-800 dark:bg-blue-900/50 dark:text-blue-200"
+                                        >
+                                            {{ skill }}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <!-- Missing Secondary Skills -->
+                                <div
+                                    v-if="
+                                        result.missing_secondary_skills &&
+                                        result.missing_secondary_skills.length > 0
+                                    "
+                                    class="mb-6"
+                                >
+                                    <h4
+                                        class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2"
+                                    >
+                                        ✗ Missing Secondary Skills
+                                    </h4>
+                                    <div class="flex flex-wrap gap-2">
+                                        <span
+                                            v-for="skill in result.missing_secondary_skills"
+                                            :key="skill"
+                                            class="inline-flex rounded-full bg-orange-100 px-3 py-1 text-sm font-medium text-orange-800 dark:bg-orange-900/50 dark:text-orange-200"
+                                        >
+                                            {{ skill }}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <!-- Matched Generic Skills -->
+                                <div
+                                    v-if="
+                                        result.matched_generic_skills &&
+                                        result.matched_generic_skills.length > 0
+                                    "
+                                    class="mb-6"
+                                >
+                                    <h4
+                                        class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2"
+                                    >
+                                        ✓ Matched Generic Skills
+                                    </h4>
+                                    <div class="flex flex-wrap gap-2">
+                                        <span
+                                            v-for="skill in result.matched_generic_skills"
+                                            :key="skill"
+                                            class="inline-flex rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-800 dark:bg-gray-700 dark:text-gray-200"
+                                        >
+                                            {{ skill }}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <!-- Missing Generic Skills -->
+                                <div
+                                    v-if="
+                                        result.missing_generic_skills &&
+                                        result.missing_generic_skills.length > 0
+                                    "
+                                    class="mb-6"
+                                >
+                                    <h4
+                                        class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2"
+                                    >
+                                        ✗ Missing Generic Skills
+                                    </h4>
+                                    <div class="flex flex-wrap gap-2">
+                                        <span
+                                            v-for="skill in result.missing_generic_skills"
+                                            :key="skill"
+                                            class="inline-flex rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-400"
                                         >
                                             {{ skill }}
                                         </span>

@@ -37,7 +37,7 @@ class ResumeAnalysisCompleted extends Notification implements ShouldBroadcast, S
     {
         $channels = ['database', 'broadcast'];
 
-        if (config('services.slack.notifications_webhook_url')) {
+        if (config('services.slack.notifications.webhook_url')) {
             $channels[] = 'slack';
         }
 
