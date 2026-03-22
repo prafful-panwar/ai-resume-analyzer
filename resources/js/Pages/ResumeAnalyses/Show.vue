@@ -1,7 +1,7 @@
 <script setup>
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
-import { Head, router, useForm } from "@inertiajs/vue3";
-import { onMounted, onUnmounted, watch } from "vue";
+import { Head, useForm, usePoll } from "@inertiajs/vue3";
+import { onMounted, watch } from "vue";
 import {
     formatRecommendation,
     getScoreColorClasses,
@@ -17,28 +17,14 @@ const props = defineProps({
 });
 
 const retryForm = useForm({});
-let refreshInterval = null;
 
-const stopPolling = () => {
-    if (refreshInterval) {
-        clearInterval(refreshInterval);
-        refreshInterval = null;
-    }
-};
-
-const startPolling = () => {
-    if (refreshInterval) return;
-
-    refreshInterval = setInterval(() => {
-        router.reload({
-            only: ["analysis"],
-            preserveScroll: true,
-            preserveState: true,
-            onSuccess: () => {},
-            onError: (_err) => {},
-        });
-    }, 3000);
-};
+const { start: startPolling, stop: stopPolling } = usePoll(3000, {
+    only: ["analysis"],
+    preserveScroll: true,
+    preserveState: true,
+}, {
+    autoStart: false,
+});
 
 onMounted(() => {
     if (
@@ -47,10 +33,6 @@ onMounted(() => {
     ) {
         startPolling();
     }
-});
-
-onUnmounted(() => {
-    stopPolling();
 });
 watch(
     () => props.analysis.status,
@@ -453,13 +435,17 @@ const getRecommendationText = (recommendation) => {
                                 color-scheme="red"
                             />
                             <SkillChipList
-                                :skills="analysis.result.matched_secondary_skills"
+                                :skills="
+                                    analysis.result.matched_secondary_skills
+                                "
                                 label="Matched Secondary Skills"
                                 icon="✓"
                                 color-scheme="blue"
                             />
                             <SkillChipList
-                                :skills="analysis.result.missing_secondary_skills"
+                                :skills="
+                                    analysis.result.missing_secondary_skills
+                                "
                                 label="Missing Secondary Skills"
                                 icon="✗"
                                 color-scheme="orange"
