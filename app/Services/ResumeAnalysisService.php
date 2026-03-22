@@ -18,12 +18,6 @@ use Illuminate\Support\Str;
 use Laravel\Ai\Responses\StructuredAgentResponse;
 use Smalot\PdfParser\Parser;
 
-/**
- * Service class for handling resume analysis operations.
- *
- * Follows Single Responsibility Principle - handles all business logic
- * related to resume analysis, keeping controllers thin.
- */
 class ResumeAnalysisService
 {
     public function __construct(
@@ -31,9 +25,6 @@ class ResumeAnalysisService
         private ResumeScoringService $scoringService
     ) {}
 
-    /**
-     * Setup the initial analysis record and store the file.
-     */
     private function setupAnalysisRecord(User $user, JobDescription $jobDescription, AnalyzeResumeData $data): ResumeAnalysis
     {
         $filePath = $this->storeResumeFile($data->resume);
@@ -47,9 +38,6 @@ class ResumeAnalysisService
         );
     }
 
-    /**
-     * Create a new resume analysis and dispatch it to the queue.
-     */
     public function createAnalysis(User $user, JobDescription $jobDescription, AnalyzeResumeData $data): ResumeAnalysis
     {
         $analysis = $this->setupAnalysisRecord($user, $jobDescription, $data);
@@ -58,9 +46,6 @@ class ResumeAnalysisService
         return $analysis;
     }
 
-    /**
-     * Create and perform analysis synchronously (e.g., for API calls).
-     */
     public function analyzeSynchronously(User $user, JobDescription $jobDescription, AnalyzeResumeData $data): ResumeAnalysis
     {
         $analysis = $this->setupAnalysisRecord($user, $jobDescription, $data);
@@ -69,21 +54,16 @@ class ResumeAnalysisService
     }
 
     /**
-     * Retry a failed analysis.
-     *
      * @throws Exception
      */
     public function retryAnalysis(ResumeAnalysis $analysis, bool $force = false): ResumeAnalysis
     {
         throw_if($analysis->status !== 'failed' && ! $force, Exception::class, 'Only failed analyses can be retried.');
 
-        // Log the current state before retrying
         $this->resumeAnalysisRepository->logRetry($analysis);
 
-        // Reset status and clear error
         $this->resumeAnalysisRepository->resetForRetry($analysis);
 
-        // Re-dispatch the job
         $this->dispatchAnalysisJob($analysis);
 
         $fresh = $this->resumeAnalysisRepository->findById($analysis->id);
@@ -94,8 +74,6 @@ class ResumeAnalysisService
     }
 
     /**
-     * Get the file path for downloading a resume.
-     *
      * @throws Exception
      */
     public function getResumeFilePath(ResumeAnalysis $analysis): string
@@ -107,17 +85,12 @@ class ResumeAnalysisService
         return $filePath;
     }
 
-    /**
-     * Get the download filename for a resume.
-     */
     public function getDownloadFilename(ResumeAnalysis $analysis): string
     {
         return $analysis->original_filename;
     }
 
     /**
-     * Store the uploaded resume file.
-     *
      * @throws Exception
      */
     private function storeResumeFile(UploadedFile $file): string
@@ -129,36 +102,23 @@ class ResumeAnalysisService
         return $path;
     }
 
-    /**
-     * Dispatch the analysis job to the queue.
-     */
     private function dispatchAnalysisJob(ResumeAnalysis $analysis): void
     {
         dispatch(new AnalyzeResumeJob($analysis));
     }
 
-    /**
-     * Perform the actual AI analysis for a resume.
-     *
-     * This method centralizes all AI-related logic, including PDF parsing,
-     * token tracking, and robust JSON extraction. It can be called
-     * synchronously or from a background job.
-     */
     public function performAnalysis(ResumeAnalysis $analysis): ResumeAnalysis
     {
         $attemptNumber = $this->resumeAnalysisRepository->getNextAttemptNumber($analysis);
 
-        // Update status to processing
         $this->resumeAnalysisRepository->markAsProcessing($analysis);
 
         try {
-            // Parse PDF
             $parser = resolve(Parser::class);
             $filePath = Storage::path($analysis->resume_file_path);
             $pdf = $parser->parseFile($filePath);
             $resumeText = $pdf->getText();
 
-            /** @var JobDescription|null $jobDescription */
             $jobDescription = $analysis->jobDescription;
 
             if (! $jobDescription) {
@@ -180,11 +140,8 @@ class ResumeAnalysisService
                 throw new Exception('AI analysis failed to return valid JSON. Raw response: '.Str::limit($response->text, 500));
             }
 
-            // Calculate deterministic score
             $scoreData = $this->scoringService->calculateScore($matchingData);
 
-            // Merge calculated keys back into data
-            // We use match_score for existing DB/Notification logic but also keep score for the user's requested output
             $matchingData['match_score'] = $scoreData['score'];
             $matchingData['score'] = $scoreData['score'];
             $matchingData['recommendation'] = $scoreData['recommendation'];
@@ -203,7 +160,6 @@ class ResumeAnalysisService
                 'experience_range' => "{$jobDescription->experience_min}-{$jobDescription->experience_max} years",
             ];
 
-            // Finalize analysis as completed via Repo
             $this->resumeAnalysisRepository->markAsCompleted(
                 $analysis,
                 $matchingData,
@@ -218,7 +174,6 @@ class ResumeAnalysisService
             return $analysis;
 
         } catch (Exception $e) {
-            // Finalize analysis as failed via Repo
             $this->resumeAnalysisRepository->markAsFailed(
                 $analysis,
                 Str::limit($e->getMessage(), 500),
@@ -231,9 +186,6 @@ class ResumeAnalysisService
         }
     }
 
-    /**
-     * Notify the user about analysis completion or failure.
-     */
     private function notifyUserOfCompletion(ResumeAnalysis $analysis): void
     {
         $user = $analysis->user;
@@ -246,17 +198,13 @@ class ResumeAnalysisService
     }
 
     /**
-     * Extract JSON from the AI response.
-     *
      * @return array<string, mixed>
      */
     private function extractJson(string $text): array
     {
-        // Try to find JSON block in markdown
         if (preg_match('/```json\s*(.*?)\s*```/s', $text, $matches)) {
             $json = $matches[1];
         } elseif (preg_match('/\{(?:[^{}]|(?R))*\}/s', $text, $matches)) {
-            // Try to find the first JSON-like structure
             $json = $matches[0];
         } else {
             $json = $text;
@@ -267,18 +215,11 @@ class ResumeAnalysisService
         return is_array($decoded) ? $decoded : [];
     }
 
-    /**
-     * Sanitize filename to prevent security issues.
-     *
-     * Removes special characters, limits length, preserves extension.
-     */
     private function sanitizeFilename(string $filename): string
     {
-        // Get file extension
         $extension = pathinfo($filename, PATHINFO_EXTENSION);
         $basename = pathinfo($filename, PATHINFO_FILENAME);
 
-        // Sanitize basename
         $basename = Str::of($basename)
             ->replaceMatches('/[^a-zA-Z0-9\s_-]/', '')
             ->squish()
@@ -286,16 +227,14 @@ class ResumeAnalysisService
             ->substr(0, 100)
             ->toString();
 
-        // If basename is empty after sanitization, use a default
         if ($basename === '' || $basename === '0') {
             $basename = 'resume_'.now()->timestamp;
         }
 
-        // Sanitize extension (only allow common document formats)
         $allowedExtensions = collect(['pdf', 'doc', 'docx', 'txt']);
         $extension = Str::lower($extension);
         if ($allowedExtensions->doesntContain($extension)) {
-            $extension = 'pdf'; // Default to pdf
+            $extension = 'pdf';
         }
 
         return $basename.'.'.$extension;

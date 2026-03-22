@@ -14,8 +14,6 @@ class DashboardService
     ) {}
 
     /**
-     * Get hiring statistics for the pulse cards.
-     *
      * @return array{total_analyses: int, high_potentials: int, total_tokens: int, pending_count: int}
      */
     public function getHiringStats(User $user): array
@@ -31,8 +29,6 @@ class DashboardService
     }
 
     /**
-     * Get recent resume analysis activity.
-     *
      * @return Collection<int, ResumeAnalysis>
      */
     public function getRecentActivity(User $user, int $limit = 5): Collection
@@ -41,8 +37,6 @@ class DashboardService
     }
 
     /**
-     * Get top-scoring talent leaderboard.
-     *
      * @return Collection<int, ResumeAnalysis>
      */
     public function getTopTalent(User $user, int $limit = 5): Collection

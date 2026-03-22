@@ -8,6 +8,7 @@ import {
     getScoreColorClasses,
     getRecommendationBadgeClasses,
 } from "@/Utils/analysis";
+import SkillChipList from "@/Components/SkillChipList.vue";
 
 const props = defineProps({
     jobDescriptions: {
@@ -22,8 +23,6 @@ const analyzing = ref(false);
 const result = ref(null);
 const error = ref(null);
 const fileInput = ref(null);
-
-// Auto-select JD from query parameter
 onMounted(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const jdId = urlParams.get("jd");
@@ -124,9 +123,7 @@ const getRecommendationText = (recommendation) => {
                     class="overflow-hidden bg-white shadow-sm sm:rounded-lg dark:bg-gray-800"
                 >
                     <div class="p-6 text-gray-900 dark:text-gray-100">
-                        <!-- Input Section -->
                         <div class="mb-8 space-y-6">
-                            <!-- Job Description Selection -->
                             <div>
                                 <label
                                     for="jd-select"
@@ -158,14 +155,12 @@ const getRecommendationText = (recommendation) => {
                                 >
                                     No job descriptions found.
                                     <a
-                                        href="/job-descriptions/create"
+                                        :href="route('job-descriptions.create')"
                                         class="text-indigo-600 hover:text-indigo-500"
                                         >Create one first</a
                                     >.
                                 </p>
                             </div>
-
-                            <!-- Selected JD Details -->
                             <div
                                 v-if="selectedJd"
                                 class="rounded-md bg-indigo-50 p-4 dark:bg-indigo-900/20"
@@ -190,8 +185,6 @@ const getRecommendationText = (recommendation) => {
                                     {{ selectedJd.description }}
                                 </p>
                             </div>
-
-                            <!-- File Upload -->
                             <div>
                                 <label
                                     class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
@@ -225,8 +218,6 @@ const getRecommendationText = (recommendation) => {
                                     KB)
                                 </p>
                             </div>
-
-                            <!-- Analyze Button -->
                             <div class="flex justify-end">
                                 <button
                                     :disabled="
@@ -267,8 +258,6 @@ const getRecommendationText = (recommendation) => {
                                 </button>
                             </div>
                         </div>
-
-                        <!-- Error Message -->
                         <div
                             v-if="error"
                             class="mb-6 rounded-md bg-red-50 p-4 dark:bg-red-900/20"
@@ -279,8 +268,6 @@ const getRecommendationText = (recommendation) => {
                                 {{ error }}
                             </p>
                         </div>
-
-                        <!-- Results Section -->
                         <div v-if="result" class="space-y-6">
                             <div
                                 class="border-t border-gray-200 dark:border-gray-700 pt-6"
@@ -290,8 +277,6 @@ const getRecommendationText = (recommendation) => {
                                 >
                                     Matching Analysis
                                 </h3>
-
-                                <!-- Match Score -->
                                 <div class="mb-6 text-center">
                                     <div
                                         class="inline-flex flex-col items-center rounded-lg bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 p-6"
@@ -326,8 +311,6 @@ const getRecommendationText = (recommendation) => {
                                         </span>
                                     </div>
                                 </div>
-
-                                <!-- Candidate Info -->
                                 <div
                                     class="mb-6 rounded-lg bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 p-4"
                                 >
@@ -362,152 +345,48 @@ const getRecommendationText = (recommendation) => {
                                         </span>
                                     </p>
                                 </div>
-
-                                <!-- Matched Primary Skills -->
-                                <div
-                                    v-if="
-                                        result.matched_primary_skills &&
-                                        result.matched_primary_skills.length > 0
-                                    "
+                                <SkillChipList
+                                    :skills="result.matched_primary_skills"
+                                    label="Matched Primary Skills (Core)"
+                                    icon="✓"
+                                    color-scheme="green"
                                     class="mb-6"
-                                >
-                                    <h4
-                                        class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2"
-                                    >
-                                        ✓ Matched Primary Skills (Core)
-                                    </h4>
-                                    <div class="flex flex-wrap gap-2">
-                                        <span
-                                            v-for="skill in result.matched_primary_skills"
-                                            :key="skill"
-                                            class="inline-flex rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-800 dark:bg-green-900/50 dark:text-green-200"
-                                        >
-                                            {{ skill }}
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <!-- Missing Primary Skills -->
-                                <div
-                                    v-if="
-                                        result.missing_primary_skills &&
-                                        result.missing_primary_skills.length > 0
-                                    "
+                                />
+                                <SkillChipList
+                                    :skills="result.missing_primary_skills"
+                                    label="Missing Primary Skills (Core)"
+                                    icon="✗"
+                                    color-scheme="red"
                                     class="mb-6"
-                                >
-                                    <h4
-                                        class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2"
-                                    >
-                                        ✗ Missing Primary Skills (Core)
-                                    </h4>
-                                    <div class="flex flex-wrap gap-2">
-                                        <span
-                                            v-for="skill in result.missing_primary_skills"
-                                            :key="skill"
-                                            class="inline-flex rounded-full bg-red-100 px-3 py-1 text-sm font-medium text-red-800 dark:bg-red-900/50 dark:text-red-200"
-                                        >
-                                            {{ skill }}
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <!-- Matched Secondary Skills -->
-                                <div
-                                    v-if="
-                                        result.matched_secondary_skills &&
-                                        result.matched_secondary_skills.length > 0
-                                    "
+                                />
+                                <SkillChipList
+                                    :skills="result.matched_secondary_skills"
+                                    label="Matched Secondary Skills"
+                                    icon="✓"
+                                    color-scheme="blue"
                                     class="mb-6"
-                                >
-                                    <h4
-                                        class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2"
-                                    >
-                                        ✓ Matched Secondary Skills
-                                    </h4>
-                                    <div class="flex flex-wrap gap-2">
-                                        <span
-                                            v-for="skill in result.matched_secondary_skills"
-                                            :key="skill"
-                                            class="inline-flex rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-800 dark:bg-blue-900/50 dark:text-blue-200"
-                                        >
-                                            {{ skill }}
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <!-- Missing Secondary Skills -->
-                                <div
-                                    v-if="
-                                        result.missing_secondary_skills &&
-                                        result.missing_secondary_skills.length > 0
-                                    "
+                                />
+                                <SkillChipList
+                                    :skills="result.missing_secondary_skills"
+                                    label="Missing Secondary Skills"
+                                    icon="✗"
+                                    color-scheme="orange"
                                     class="mb-6"
-                                >
-                                    <h4
-                                        class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2"
-                                    >
-                                        ✗ Missing Secondary Skills
-                                    </h4>
-                                    <div class="flex flex-wrap gap-2">
-                                        <span
-                                            v-for="skill in result.missing_secondary_skills"
-                                            :key="skill"
-                                            class="inline-flex rounded-full bg-orange-100 px-3 py-1 text-sm font-medium text-orange-800 dark:bg-orange-900/50 dark:text-orange-200"
-                                        >
-                                            {{ skill }}
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <!-- Matched Generic Skills -->
-                                <div
-                                    v-if="
-                                        result.matched_generic_skills &&
-                                        result.matched_generic_skills.length > 0
-                                    "
+                                />
+                                <SkillChipList
+                                    :skills="result.matched_generic_skills"
+                                    label="Matched Generic Skills"
+                                    icon="✓"
+                                    color-scheme="gray"
                                     class="mb-6"
-                                >
-                                    <h4
-                                        class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2"
-                                    >
-                                        ✓ Matched Generic Skills
-                                    </h4>
-                                    <div class="flex flex-wrap gap-2">
-                                        <span
-                                            v-for="skill in result.matched_generic_skills"
-                                            :key="skill"
-                                            class="inline-flex rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-800 dark:bg-gray-700 dark:text-gray-200"
-                                        >
-                                            {{ skill }}
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <!-- Missing Generic Skills -->
-                                <div
-                                    v-if="
-                                        result.missing_generic_skills &&
-                                        result.missing_generic_skills.length > 0
-                                    "
+                                />
+                                <SkillChipList
+                                    :skills="result.missing_generic_skills"
+                                    label="Missing Generic Skills"
+                                    icon="✗"
+                                    color-scheme="gray-dark"
                                     class="mb-6"
-                                >
-                                    <h4
-                                        class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2"
-                                    >
-                                        ✗ Missing Generic Skills
-                                    </h4>
-                                    <div class="flex flex-wrap gap-2">
-                                        <span
-                                            v-for="skill in result.missing_generic_skills"
-                                            :key="skill"
-                                            class="inline-flex rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-400"
-                                        >
-                                            {{ skill }}
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <!-- Strengths -->
+                                />
                                 <div
                                     v-if="
                                         result.strengths &&
@@ -531,8 +410,6 @@ const getRecommendationText = (recommendation) => {
                                         </li>
                                     </ul>
                                 </div>
-
-                                <!-- Concerns -->
                                 <div
                                     v-if="
                                         result.concerns &&
@@ -556,8 +433,6 @@ const getRecommendationText = (recommendation) => {
                                         </li>
                                     </ul>
                                 </div>
-
-                                <!-- Summary -->
                                 <div
                                     v-if="result.summary"
                                     class="rounded-lg bg-gray-50 dark:bg-gray-700/50 p-4"
