@@ -2,23 +2,9 @@
 
 namespace App\Services;
 
-/**
- * Service class for scoring a resume against a job description.
- *
- * Follows SOLID principles and handles deterministic similarity calculations
- * based on classified skills from the AI output.
- */
 class ResumeScoringService
 {
     /**
-     * Calculate the resume match score based on categorized skills.
-     *
-     * Rules:
-     * - Primary skills: 60% weight
-     * - Secondary skills: 30% weight
-     * - Generic skills: 10% weight
-     * - Missing primary skill penalty: Caps score at 40%
-     *
      * @param  array<string, mixed>  $aiData
      * @return array<string, mixed>
      */
@@ -35,27 +21,22 @@ class ResumeScoringService
         $totalSecondary = count($matchedSecondary) + count($missingSecondary);
         $totalGeneric = count($matchedGeneric) + count($missingGeneric);
 
-        // Adjust weights dynamically if a category has 0 skills required
         $weightPrimary = $totalPrimary > 0 ? 60 : 0;
         $weightSecondary = $totalSecondary > 0 ? 30 : 0;
         $weightGeneric = $totalGeneric > 0 ? 10 : 0;
 
         $totalAvailableWeight = $weightPrimary + $weightSecondary + $weightGeneric;
 
-        // If no skills are required at all, default to 100% (rare edge case)
         if ($totalAvailableWeight === 0) {
             return $this->formatResult(100, $matchedPrimary, $missingPrimary, 'No specific skills required. Defaulting to 100%.');
         }
 
-        // Calculate weighted scores
         $scorePrimary = $totalPrimary > 0 ? (count($matchedPrimary) / $totalPrimary) * $weightPrimary : 0;
         $scoreSecondary = $totalSecondary > 0 ? (count($matchedSecondary) / $totalSecondary) * $weightSecondary : 0;
         $scoreGeneric = $totalGeneric > 0 ? (count($matchedGeneric) / $totalGeneric) * $weightGeneric : 0;
 
-        // Calculate raw score (normalized to 100 in case total available weight < 100)
         $rawScore = ($scorePrimary + $scoreSecondary + $scoreGeneric) / $totalAvailableWeight * 100;
 
-        // Mandatory Skill Enforcement / Language Mismatch Rule
         $hasMissingPrimary = count($missingPrimary) > 0;
         $finalScore = $rawScore;
         $summary = $aiData['summary'] ?? 'Calculation complete.';
@@ -69,10 +50,8 @@ class ResumeScoringService
     }
 
     /**
-     * Format the output to ensure deterministic structure.
-     *
-     * @param  array<int, string>  $matchedPrimary
-     * @param  array<int, string>  $missingPrimary
+     * @param  array<mixed>  $matchedPrimary
+     * @param  array<mixed>  $missingPrimary
      * @return array<string, mixed>
      */
     private function formatResult(int $score, array $matchedPrimary, array $missingPrimary, string $summary): array
@@ -105,8 +84,6 @@ class ResumeScoringService
         $filtered = [];
         foreach ($skills as $skill) {
             if (! is_string($skill)) {
-                $filtered[] = $skill;
-
                 continue;
             }
             $lowercase = strtolower(trim($skill));

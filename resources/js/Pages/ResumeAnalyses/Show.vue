@@ -1,12 +1,13 @@
 <script setup>
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
-import { Head, router, useForm } from "@inertiajs/vue3";
-import { onMounted, onUnmounted, watch } from "vue";
+import { Head, useForm, usePoll } from "@inertiajs/vue3";
+import { onMounted, watch } from "vue";
 import {
     formatRecommendation,
     getScoreColorClasses,
     getRecommendationBadgeClasses,
 } from "@/Utils/analysis";
+import SkillChipList from "@/Components/SkillChipList.vue";
 
 const props = defineProps({
     analysis: {
@@ -17,29 +18,13 @@ const props = defineProps({
 
 const retryForm = useForm({});
 
-// Polling Logic
-let refreshInterval = null;
-
-const stopPolling = () => {
-    if (refreshInterval) {
-        clearInterval(refreshInterval);
-        refreshInterval = null;
-    }
-};
-
-const startPolling = () => {
-    if (refreshInterval) return;
-
-    refreshInterval = setInterval(() => {
-        router.reload({
-            only: ["analysis"],
-            preserveScroll: true,
-            preserveState: true,
-            onSuccess: () => {},
-            onError: (_err) => {},
-        });
-    }, 3000);
-};
+const { start: startPolling, stop: stopPolling } = usePoll(3000, {
+    only: ["analysis"],
+    preserveScroll: true,
+    preserveState: true,
+}, {
+    autoStart: false,
+});
 
 onMounted(() => {
     if (
@@ -49,21 +34,13 @@ onMounted(() => {
         startPolling();
     }
 });
-
-onUnmounted(() => {
-    stopPolling();
-});
-
-// Watch for status changes to start/stop polling
 watch(
     () => props.analysis.status,
     (newStatus, _oldStatus) => {
-        // Handle Polling State
         if (newStatus === "pending" || newStatus === "processing") {
             startPolling();
         } else if (newStatus === "completed" || newStatus === "failed") {
             stopPolling();
-            // Toast is handled globally in AuthenticatedLayout.vue
         }
     },
 );
@@ -113,7 +90,6 @@ const getRecommendationText = (recommendation) => {
                     class="overflow-hidden bg-white shadow-sm sm:rounded-lg dark:bg-gray-800"
                 >
                     <div class="p-6 text-gray-900 dark:text-gray-100">
-                        <!-- Status -->
                         <div
                             v-if="
                                 analysis.status === 'pending' ||
@@ -154,8 +130,6 @@ const getRecommendationText = (recommendation) => {
                                 This page will auto-refresh when complete.
                             </p>
                         </div>
-
-                        <!-- Failed -->
                         <div
                             v-else-if="analysis.status === 'failed'"
                             class="rounded-md bg-red-50 dark:bg-red-900/20 p-4"
@@ -201,8 +175,6 @@ const getRecommendationText = (recommendation) => {
                                 </button>
                             </div>
                         </div>
-
-                        <!-- Completed - Show Results (reuse from ResumeMatching.vue) -->
                         <div
                             v-else-if="
                                 analysis.status === 'completed' &&
@@ -210,9 +182,7 @@ const getRecommendationText = (recommendation) => {
                             "
                             class="space-y-6"
                         >
-                            <!-- Comparison Header: Job vs Candidate -->
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <!-- Job Context -->
                                 <div
                                     class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 shadow-sm"
                                 >
@@ -245,8 +215,6 @@ const getRecommendationText = (recommendation) => {
                                         </p>
                                     </div>
                                 </div>
-
-                                <!-- Candidate Info -->
                                 <div
                                     class="rounded-lg border border-indigo-100 bg-indigo-50/50 dark:border-indigo-900/30 dark:bg-indigo-900/10 p-4 shadow-sm"
                                 >
@@ -272,8 +240,6 @@ const getRecommendationText = (recommendation) => {
                                     </div>
                                 </div>
                             </div>
-
-                            <!-- Resume Info -->
                             <div
                                 class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 p-4"
                             >
@@ -355,8 +321,6 @@ const getRecommendationText = (recommendation) => {
                                     </div>
                                 </div>
                             </div>
-
-                            <!-- Match Score -->
                             <div class="text-center mb-6">
                                 <div
                                     class="inline-flex flex-col items-center rounded-lg bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 p-6"
@@ -391,8 +355,6 @@ const getRecommendationText = (recommendation) => {
                                     </span>
                                 </div>
                             </div>
-
-                            <!-- Token Usage (AI Expert Feature) -->
                             <div
                                 v-if="analysis.total_tokens"
                                 class="rounded-lg border border-indigo-100 bg-indigo-50/30 dark:border-indigo-900/30 dark:bg-indigo-900/10 p-4"
@@ -460,152 +422,46 @@ const getRecommendationText = (recommendation) => {
                                     </div>
                                 </div>
                             </div>
-
-                            <!-- Matched Primary Skills -->
-                            <div
-                                v-if="
-                                    analysis.result.matched_primary_skills &&
-                                    analysis.result.matched_primary_skills.length > 0
+                            <SkillChipList
+                                :skills="analysis.result.matched_primary_skills"
+                                label="Matched Primary Skills (Core)"
+                                icon="✓"
+                                color-scheme="green"
+                            />
+                            <SkillChipList
+                                :skills="analysis.result.missing_primary_skills"
+                                label="Missing Primary Skills (Core)"
+                                icon="✗"
+                                color-scheme="red"
+                            />
+                            <SkillChipList
+                                :skills="
+                                    analysis.result.matched_secondary_skills
                                 "
-                                class="mb-4"
-                            >
-                                <h4
-                                    class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2"
-                                >
-                                    ✓ Matched Primary Skills (Core)
-                                </h4>
-                                <div class="flex flex-wrap gap-2">
-                                    <span
-                                        v-for="skill in analysis.result.matched_primary_skills"
-                                        :key="skill"
-                                        class="inline-flex rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-800 dark:bg-green-900/50 dark:text-green-200"
-                                    >
-                                        {{ skill }}
-                                    </span>
-                                </div>
-                            </div>
-
-                            <!-- Missing Primary Skills -->
-                            <div
-                                v-if="
-                                    analysis.result.missing_primary_skills &&
-                                    analysis.result.missing_primary_skills.length > 0
+                                label="Matched Secondary Skills"
+                                icon="✓"
+                                color-scheme="blue"
+                            />
+                            <SkillChipList
+                                :skills="
+                                    analysis.result.missing_secondary_skills
                                 "
-                                class="mb-4"
-                            >
-                                <h4
-                                    class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2"
-                                >
-                                    ✗ Missing Primary Skills (Core)
-                                </h4>
-                                <div class="flex flex-wrap gap-2">
-                                    <span
-                                        v-for="skill in analysis.result.missing_primary_skills"
-                                        :key="skill"
-                                        class="inline-flex rounded-full bg-red-100 px-3 py-1 text-sm font-medium text-red-800 dark:bg-red-900/50 dark:text-red-200"
-                                    >
-                                        {{ skill }}
-                                    </span>
-                                </div>
-                            </div>
-
-                            <!-- Matched Secondary Skills -->
-                            <div
-                                v-if="
-                                    analysis.result.matched_secondary_skills &&
-                                    analysis.result.matched_secondary_skills.length > 0
-                                "
-                                class="mb-4"
-                            >
-                                <h4
-                                    class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2"
-                                >
-                                    ✓ Matched Secondary Skills
-                                </h4>
-                                <div class="flex flex-wrap gap-2">
-                                    <span
-                                        v-for="skill in analysis.result.matched_secondary_skills"
-                                        :key="skill"
-                                        class="inline-flex rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-800 dark:bg-blue-900/50 dark:text-blue-200"
-                                    >
-                                        {{ skill }}
-                                    </span>
-                                </div>
-                            </div>
-
-                            <!-- Missing Secondary Skills -->
-                            <div
-                                v-if="
-                                    analysis.result.missing_secondary_skills &&
-                                    analysis.result.missing_secondary_skills.length > 0
-                                "
-                                class="mb-4"
-                            >
-                                <h4
-                                    class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2"
-                                >
-                                    ✗ Missing Secondary Skills
-                                </h4>
-                                <div class="flex flex-wrap gap-2">
-                                    <span
-                                        v-for="skill in analysis.result.missing_secondary_skills"
-                                        :key="skill"
-                                        class="inline-flex rounded-full bg-orange-100 px-3 py-1 text-sm font-medium text-orange-800 dark:bg-orange-900/50 dark:text-orange-200"
-                                    >
-                                        {{ skill }}
-                                    </span>
-                                </div>
-                            </div>
-
-                            <!-- Matched Generic Skills -->
-                            <div
-                                v-if="
-                                    analysis.result.matched_generic_skills &&
-                                    analysis.result.matched_generic_skills.length > 0
-                                "
-                                class="mb-4"
-                            >
-                                <h4
-                                    class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2"
-                                >
-                                    ✓ Matched Generic Skills
-                                </h4>
-                                <div class="flex flex-wrap gap-2">
-                                    <span
-                                        v-for="skill in analysis.result.matched_generic_skills"
-                                        :key="skill"
-                                        class="inline-flex rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-800 dark:bg-gray-700 dark:text-gray-200"
-                                    >
-                                        {{ skill }}
-                                    </span>
-                                </div>
-                            </div>
-
-                            <!-- Missing Generic Skills -->
-                            <div
-                                v-if="
-                                    analysis.result.missing_generic_skills &&
-                                    analysis.result.missing_generic_skills.length > 0
-                                "
-                                class="mb-4"
-                            >
-                                <h4
-                                    class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2"
-                                >
-                                    ✗ Missing Generic Skills
-                                </h4>
-                                <div class="flex flex-wrap gap-2">
-                                    <span
-                                        v-for="skill in analysis.result.missing_generic_skills"
-                                        :key="skill"
-                                        class="inline-flex rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-400"
-                                    >
-                                        {{ skill }}
-                                    </span>
-                                </div>
-                            </div>
-
-                            <!-- Summary -->
+                                label="Missing Secondary Skills"
+                                icon="✗"
+                                color-scheme="orange"
+                            />
+                            <SkillChipList
+                                :skills="analysis.result.matched_generic_skills"
+                                label="Matched Generic Skills"
+                                icon="✓"
+                                color-scheme="gray"
+                            />
+                            <SkillChipList
+                                :skills="analysis.result.missing_generic_skills"
+                                label="Missing Generic Skills"
+                                icon="✗"
+                                color-scheme="gray-dark"
+                            />
                             <div
                                 v-if="analysis.result.summary"
                                 class="rounded-lg bg-gray-50 dark:bg-gray-700/50 p-4"
@@ -619,8 +475,6 @@ const getRecommendationText = (recommendation) => {
                                     {{ analysis.result.summary }}
                                 </p>
                             </div>
-
-                            <!-- Logs Section -->
                             <div
                                 v-if="analysis.logs && analysis.logs.length > 0"
                                 class="mt-8 border-t border-gray-200 dark:border-gray-700 pt-8"
@@ -769,7 +623,5 @@ const getRecommendationText = (recommendation) => {
                 </div>
             </div>
         </div>
-
-        <!-- Local toast removed. Notifications handled by AuthenticatedLayout -->
     </AuthenticatedLayout>
 </template>

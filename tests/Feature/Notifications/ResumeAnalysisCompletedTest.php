@@ -39,7 +39,7 @@ function setupTestData(): array
 
 test('notification is sent via database and broadcast channels when no slack webhook configured', function (): void {
     [$user, $analysis, $notification] = setupTestData();
-    config(['services.slack.notifications_webhook_url' => null]);
+    config(['services.slack.notifications.webhook_url' => null]);
 
     $channels = $notification->via($user);
 
@@ -50,7 +50,7 @@ test('notification is sent via database and broadcast channels when no slack web
 
 test('notification includes slack channel when webhook is configured', function (): void {
     [$user, $analysis, $notification] = setupTestData();
-    config(['services.slack.notifications_webhook_url' => 'https://hooks.slack.com/services/test']);
+    config(['services.slack.notifications.webhook_url' => 'https://hooks.slack.com/services/test']);
 
     $channels = $notification->via($user);
 

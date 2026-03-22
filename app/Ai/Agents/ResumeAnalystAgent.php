@@ -67,7 +67,7 @@ Provide your analysis in the following JSON format:
     \"experience_match\": \"matches|below|above\",
     \"strengths\": [\"strength1\", \"strength2\"],
     \"concerns\": [\"concern1\", \"concern2\"],
-    \"recommendation\": \"perfect_match|strong_match|good_match|partial_match|weak_match|poor_match\",
+    \"recommendation\": \"strong_match|good_match|average_match|poor_match\",
     \"summary\": \"brief summary\"
 }";
     }
@@ -99,7 +99,7 @@ Provide your analysis in the following JSON format:
             'experience_match' => $schema->string()->enum(['matches', 'below', 'above'])->description('How the candidate\'s experience compares to requirements.'),
             'strengths' => $schema->array()->items($schema->string())->description('Key strengths of the candidate relative to the job.'),
             'concerns' => $schema->array()->items($schema->string())->description('Potential concerns or red flags.'),
-            'recommendation' => $schema->string()->enum(['perfect_match', 'strong_match', 'good_match', 'partial_match', 'weak_match', 'poor_match'])->description('Final recommendation based on the rubric.'),
+            'recommendation' => $schema->string()->enum(['strong_match', 'good_match', 'average_match', 'poor_match'])->description('Final recommendation based on the rubric.'),
             'summary' => $schema->string()->description('A brief summary of the analysis.'),
         ];
     }

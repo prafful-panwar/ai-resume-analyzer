@@ -1,7 +1,7 @@
 <script setup>
-import { router } from "@inertiajs/vue3";
+import { Head, router, usePoll } from "@inertiajs/vue3";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
-import { Head } from "@inertiajs/vue3";
+import { onMounted, watch } from "vue";
 import {
     formatRecommendation,
     getScoreColorClasses,
@@ -42,16 +42,28 @@ const getStatusText = (status) => {
     return texts[status] || status;
 };
 
-// Auto-refresh every 5 seconds if there are pending/processing analyses
-const hasPendingAnalyses = props.analyses.some(
-    (a) => a.status === "pending" || a.status === "processing",
-);
+const { start, stop } = usePoll(5000, {
+    only: ["analyses"],
+}, {
+    autoStart: false,
+});
 
-if (hasPendingAnalyses) {
-    setInterval(() => {
-        router.reload({ only: ["analyses"] });
-    }, 5000);
-}
+const checkPolling = () => {
+    const hasPendingAnalyses = props.analyses.some(
+        (a) => a.status === "pending" || a.status === "processing",
+    );
+    if (hasPendingAnalyses) {
+        start();
+    } else {
+        stop();
+    }
+};
+
+watch(() => props.analyses, checkPolling, { deep: true });
+
+onMounted(() => {
+    checkPolling();
+});
 </script>
 
 <template>
