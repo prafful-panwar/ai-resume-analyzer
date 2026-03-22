@@ -1,5 +1,9 @@
 # Resume Analyzer 📄🔍
 
+![Laravel 13](https://img.shields.io/badge/Laravel-13-FF2D20?style=for-the-badge&logo=laravel&logoColor=white)
+![PHP 8.4](https://img.shields.io/badge/PHP-8.4-777BB4?style=for-the-badge&logo=php&logoColor=white)
+![Vue.js 3](https://img.shields.io/badge/Vue.js-3-4FC08D?style=for-the-badge&logo=vuedotjs&logoColor=white)
+
 Resume Analyzer is an AI-powered Laravel application designed to streamline the recruitment process. It leverages Large Language Models (LLMs) to analyze resumes, extract structured data, and match candidates against specific job descriptions. The application is designed to be **model-agnostic**, allowing you to use any LLM provider (Ollama, OpenAI, Anthropic, etc.) for testing and production.
 
 ## Product Walkthrough
@@ -17,7 +21,7 @@ Resume Analyzer is an AI-powered Laravel application designed to streamline the 
 ![Analysis List](docs/assets/analysis-list.png)
 ![Detailed Analysis](docs/assets/analysis-top.png)
 
-- **Resume Matching**: Upload a PDF resume and compare it against a Job Description (JD) to get a compatibility score and analysis (Skills, Experience, Education match).
+- **Resume Matching (Deterministic Scoring)**: Upload a PDF resume and compare it against a Job Description (JD). Skills are dynamically categorized into Primary, Secondary, and Generic based on the specific JD domain (e.g., Software Engineering vs. HR). The system programmatically calculates a deterministic compatibility score using a weighted rubric, enforcing strict penalties (capping at 40%) if core primary skills are missing.
 - **Queue-Based Processing**: Analysis runs in the background using **Laravel Horizon** with a dedicated `resume-analysis` queue — fully isolated from notification delivery for better reliability.
 - **Real-time Notifications**: Instant in-app toast notifications powered by **Laravel Reverb** (WebSockets). No polling — the UI is notified the moment a job completes or fails.
 - **Slack Notifications**: When a job finishes, a rich Slack message is sent to your configured webhook with the job role, match score (or error), and status — colour-coded green or red.
@@ -37,6 +41,60 @@ Resume Analyzer is an AI-powered Laravel application designed to streamline the 
 - **Database**: MySQL
 - **Monitoring**: Laravel Telescope (local), Laravel Nightwatch (production)
 - **Code Quality**: Rector, Larastan (Level 8), Pest, Pint, GrumPHP
+
+## 🏛️ Architecture Overview
+
+### 1. Entity-Relationship (ER) Diagram
+
+![ER Diagram](docs/assets/er-diagram.png)
+
+### 2. Application Request Flow
+
+```text
+User Uploads PDF Resume
+          ↓
+Laravel Application (Validation & Processing)
+          ↓
+PDF Parser (Extracts Raw Text)
+          ↓
+Redis Queue (resume-analysis)
+          ↓
+Horizon Queue Worker (Pops Job)
+          ↓
+Laravel AI SDK
+          ↓
+Ollama (Local qwen2.5:14b Inference)
+          ↓
+Scoring Service (Calculates Deterministic Score)
+          ↓
+MySQL Database (Saves Analysis & Score)
+```
+
+### 3. Real-Time Broadcasting Flow
+
+```text
+Horizon Queue Worker (Job Completes or Fails)
+          ↓
+Dispatch ResumeAnalysisCompleted Notification
+          ↓
+Laravel Broadcasting (ShouldBroadcast)
+          ↓
+Laravel Reverb (WebSocket Server)
+          ↓
+Connected Browsers (Live Vue Toast Notification)
+          ↓
+Slack API (Sends Configured Webhook Alert)
+```
+
+### 4. Infrastructure Components
+
+- **Vue.js 3 + Inertia** – Frontend SPA & styling via Tailwind
+- **Laravel 13** – Application & business logic
+- **MySQL** – Persistent data storage (Users, Job Descriptions, Analysis)
+- **Redis** – High-speed queue driver & cache
+- **Laravel Horizon** – Manages autonomous queue workers
+- **Laravel Reverb** – First-party WebSocket server for real-time updates
+- **Ollama / AI SDK** – Local AI inference & model bridging
 
 ## 📦 Installation
 
@@ -107,9 +165,9 @@ Resume Analyzer is an AI-powered Laravel application designed to streamline the 
 7.  **Setup AI (Ollama)**
     Ensure [Ollama](https://ollama.ai) is installed and running locally.
     ```bash
-    ollama pull mistral
+    ollama pull qwen2.5:14b
     ```
-    _(Note: You can configure the model in `config/ai.php` or `.env` if variable is exposed)_
+    _(Note: You can configure the model in `app/Ai/Agents/ResumeAnalystAgent.php` or `config/ai.php`)_
 
 ## 🏃‍♂️ Running the Application
 
@@ -161,7 +219,7 @@ This project adheres to strict code quality standards, enforced automatically vi
 
 ### The "Code Shield"
 
-We have a unified command that runs all quality checks. You **must** pass this before committing code.
+We have a unified command that runs all quality checks. You **must** pass this before committing code. The codebase currently maintains **100% Test Coverage** and **PHPStan Level 8**.
 
 ```bash
 composer run code-shield
@@ -210,7 +268,7 @@ As an LLM architect, here are the key considerations for achieving production-gr
 
 ### 1. Accuracy vs. Cost (Model Selection)
 
-- **For Development/Privacy**: [Ollama](https://ollama.ai) with **Mistral** or **Llama 3** is excellent for testing logic locally and ensuring no data leaves your machine.
+- **For Development/Privacy**: [Ollama](https://ollama.ai) with **Qwen 2.5 (14B)** or **Llama 3** is excellent for testing logic locally and ensuring no data leaves your machine. (This app is pre-configured to use `qwen2.5:14b`).
 - **For High-Accuracy Production**: Use premium models like **GPT-4o** or **Claude 3.5 Sonnet**. Resume parsing involves nuanced extraction (e.g., distinguishing between a "Skill" mentioned in a project vs. a "Core Competency"). Free/Local models often struggle with these nuances or JSON formatting compared to larger, proprietary models.
 
 ### 2. Structured Output Enforcement

@@ -27,7 +27,8 @@ use Smalot\PdfParser\Parser;
 class ResumeAnalysisService
 {
     public function __construct(
-        private ResumeAnalysisRepositoryInterface $resumeAnalysisRepository
+        private ResumeAnalysisRepositoryInterface $resumeAnalysisRepository,
+        private ResumeScoringService $scoringService
     ) {}
 
     /**
@@ -178,6 +179,18 @@ class ResumeAnalysisService
             if ($matchingData === []) {
                 throw new Exception('AI analysis failed to return valid JSON. Raw response: '.Str::limit($response->text, 500));
             }
+
+            // Calculate deterministic score
+            $scoreData = $this->scoringService->calculateScore($matchingData);
+
+            // Merge calculated keys back into data
+            // We use match_score for existing DB/Notification logic but also keep score for the user's requested output
+            $matchingData['match_score'] = $scoreData['score'];
+            $matchingData['score'] = $scoreData['score'];
+            $matchingData['recommendation'] = $scoreData['recommendation'];
+            $matchingData['matched_primary_skills'] = $scoreData['matched_primary_skills'];
+            $matchingData['missing_primary_skills'] = $scoreData['missing_primary_skills'];
+            $matchingData['summary'] = $scoreData['summary'];
 
             $usage = $response->usage;
             $promptTokens = $usage->promptTokens ?? 0;
