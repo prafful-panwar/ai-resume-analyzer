@@ -14,7 +14,7 @@ use Laravel\Ai\Promptable;
 use Stringable;
 
 #[Provider('ollama')]
-#[Model('qwen2.5:14b')]
+#[Model('qwen2.5:7b')]
 #[Timeout(300)]
 class ResumeAnalystAgent implements Agent, Conversational, HasStructuredOutput
 {
@@ -47,9 +47,9 @@ Job Description: {$this->jobDescription->description}
 Required Skills: {$requirements}
 
 SKILL CLASSIFICATION RULES:
-- Primary Skills: The absolute core, non-negotiable hard skills required for this specific role. For a Developer, this means programming languages and core frameworks (e.g., PHP, Laravel). For an HR role, this means core HR functions (e.g., Talent Acquisition, Sourcing). For a Manager, this means core leadership skills.
-- Secondary Skills: Important but not strictly deal-breaking skills (e.g., tools, secondary frameworks, specific software).
-- Generic Skills: Common soft skills or generic methodologies (e.g., Communication, Problem-solving, Agile, Teamwork).
+- Primary Skills: STRICTLY the main Programming Languages, Databases, and Core Frameworks (e.g., PHP, JavaScript, Laravel, React, MySQL). NEVER classify concepts, methodologies, architectures (like RESTful APIs), or generic tools as Primary.
+- Secondary Skills: Important but not strictly deal-breaking tools, cloud platforms, secondary libraries (e.g., Docker, AWS, Tailwind, Redis).
+- Generic Skills: Common soft skills, architectural styles, concepts or methodologies (e.g., RESTful APIs, Communication, Problem-solving, Agile, Teamwork, OOP, SOLID).
 
 Resume:
 {$this->resumeText}
