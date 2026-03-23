@@ -70,6 +70,7 @@ class ResumeAnalysisCompleted extends Notification implements ShouldBroadcast, S
             ->attachment(function (SlackAttachment $attachment) use ($jobRole, $isCompleted, $matchScore): void {
                 $fields = [
                     'Job Role' => $jobRole,
+                    'Resume' => $this->resumeAnalysis->original_filename,
                     'Status' => Str::ucfirst($this->resumeAnalysis->status),
                 ];
 
@@ -110,9 +111,13 @@ class ResumeAnalysisCompleted extends Notification implements ShouldBroadcast, S
             /** @var array<string, mixed> $result */
             $result = (array) $this->resumeAnalysis->result;
             $data['match_score'] = $result['match_score'] ?? null;
-            $data['message'] = "Resume analysis for {$jobRole} is complete!";
+
+            $candidateName = $result['candidate_name'] ?? null;
+            $displayName = $candidateName ?: $this->resumeAnalysis->original_filename;
+
+            $data['message'] = "The resume analysis for {$jobRole} ({$displayName}) is now complete!";
         } else {
-            $data['message'] = "Resume analysis for {$jobRole} failed.";
+            $data['message'] = "The resume analysis for {$jobRole} ({$this->resumeAnalysis->original_filename}) has failed.";
             $data['error'] = (string) $this->resumeAnalysis->error_message;
         }
 

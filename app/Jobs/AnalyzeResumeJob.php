@@ -7,17 +7,14 @@ use App\Repositories\Contracts\ResumeAnalysisRepositoryInterface;
 use App\Services\ResumeAnalysisService;
 use DateTime;
 use Exception;
-use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\Attributes\Backoff;
 use Illuminate\Queue\Attributes\DeleteWhenMissingModels;
 use Illuminate\Queue\Attributes\Timeout;
 use Illuminate\Queue\Attributes\Tries;
-use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\Middleware\RateLimited;
-use Illuminate\Queue\SerializesModels;
 use Log;
 use Throwable;
 
@@ -27,7 +24,7 @@ use Throwable;
 #[Backoff([60, 120, 300])]
 class AnalyzeResumeJob implements ShouldBeUnique, ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use Queueable;
 
     public const string QUEUE = 'resume-analysis';
 
