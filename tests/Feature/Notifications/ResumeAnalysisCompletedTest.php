@@ -87,6 +87,7 @@ test('toSlack returns a SlackMessage instance with formatted fields', function (
     $attachment = $slack->attachments[0];
     expect($attachment->fields)->toBe([
         'Job Role' => 'Software Engineer',
+        'Resume' => 'resume.pdf',
         'Status' => Str::ucfirst($analysis->status),
         'Match Score' => Number::percentage(85, maxPrecision: 0),
     ]);
