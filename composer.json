@@ -82,9 +82,14 @@
             "./vendor/bin/rector process",
             "./vendor/bin/pint"
         ],
+        "install-hooks": [
+            "cp scripts/pre-push.sh .git/hooks/pre-push",
+            "chmod +x .git/hooks/pre-push"
+        ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
-            "@php artisan package:discover --ansi"
+            "@php artisan package:discover --ansi",
+            "@composer install-hooks"
         ],
         "post-update-cmd": [
             "@php artisan vendor:publish --tag=laravel-assets --ansi --force"

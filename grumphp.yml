@@ -1,5 +1,7 @@
 grumphp:
   tasks:
+    git_branch_name:
+      whitelist: ['/^(feature|fix|update|hotfix|chore|docs|refactor|perf|test|build)\/.*/', '/^main$/']
     git_commit_message:
       allow_empty_message: false
       enforce_capitalized_subject: false

@@ -1,7 +1,7 @@
 # Resume Analyzer 📄🔍
 
 ![Laravel 13](https://img.shields.io/badge/Laravel-13-FF2D20?style=for-the-badge&logo=laravel&logoColor=white)
-![PHP 8.4](https://img.shields.io/badge/PHP-8.4-777BB4?style=for-the-badge&logo=php&logoColor=white)
+![PHP 8.5](https://img.shields.io/badge/PHP-8.5-777BB4?style=for-the-badge&logo=php&logoColor=white)
 ![Vue.js 3](https://img.shields.io/badge/Vue.js-3-4FC08D?style=for-the-badge&logo=vuedotjs&logoColor=white)
 
 Resume Analyzer is an AI-powered Laravel application designed to streamline the recruitment process. It leverages Large Language Models (LLMs) to analyze resumes, extract structured data, and match candidates against specific job descriptions. The application is designed to be **model-agnostic**, allowing you to use any LLM provider (Ollama, OpenAI, Anthropic, etc.) for testing and production.
@@ -33,7 +33,7 @@ Resume Analyzer is an AI-powered Laravel application designed to streamline the 
 
 ## 🛠️ Tech Stack
 
-- **Backend**: Laravel 13, PHP 8.4
+- **Backend**: Laravel 13, PHP 8.5
 - **Frontend**: Vue.js 3, Inertia.js, Tailwind CSS
 - **AI/LLM**: Powered by the **[Laravel AI SDK](https://github.com/laravel/ai)** for model-agnostic integration (Ollama, OpenAI, Anthropic, etc.)
 - **Queue**: Redis + **Laravel Horizon** (dedicated supervisors per queue)
@@ -303,9 +303,9 @@ Resumes contain PII (Phone numbers, Emails). If you are in a highly regulated in
 ## 🤝 Contributing
 
 1.  Fork the repository
-2.  Create your feature branch (`git checkout -b feature/amazing-feature`)
+2.  Create your branch (`git checkout -b feature/amazing-feature` or `update/dependency-bump`)
 3.  **Run Code Shield** (`composer run code-shield`) to ensure all checks pass 🛡️
-4.  Commit your changes (`git commit -m 'Add some amazing feature'`)
+4.  Commit your changes (`git commit -m 'feat: add some amazing feature'`)
 5.  Push to the branch (`git push origin feature/amazing-feature`)
 6.  Open a Pull Request
 
